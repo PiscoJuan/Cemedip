@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { globalStyles } from '../constants/globalStyles';
 
@@ -61,9 +61,21 @@ export default function Login() {
 
   return (
     <View style={globalStyles.container}>
+      {/* Logo centrado */}
+      <Image
+        source={require('../assets/images/logo.png')} // Asegúrate de que esta ruta sea correcta en tu proyecto
+        style={{
+          width: 120,
+          height: 120,
+          alignSelf: 'center',
+          marginBottom: 30,
+        }}
+        resizeMode="contain"
+      />
+
       <Text style={globalStyles.headerText}>INICIAR SESIÓN</Text>
 
-      <Text>USUARIO</Text>
+      <Text style={globalStyles.label}>USUARIO</Text>
       <TextInput
         style={globalStyles.input}
         placeholder="Usuario (ej. correo@dominio.com)"
@@ -73,9 +85,9 @@ export default function Login() {
         keyboardType="email-address"
       />
 
-      <Text>CONTRASEÑA</Text>
+      <Text style={globalStyles.label}>CONTRASEÑA</Text>
       <TextInput
-        style={globalStyles.input}
+        style={[globalStyles.input, {marginBottom: 32}]}
         placeholder="************"
         secureTextEntry
         value={password}
@@ -95,7 +107,7 @@ export default function Login() {
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/recover-password')} disabled={isLoading}>
-        <Text style={globalStyles.linkText}>RECUPERAR CONTRASEÑA</Text>
+        <Text style={[globalStyles.linkText, {marginTop: 24 }]}>RECUPERAR CONTRASEÑA</Text>
       </TouchableOpacity>
     </View>
   );

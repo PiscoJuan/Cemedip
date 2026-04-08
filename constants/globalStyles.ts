@@ -10,15 +10,19 @@ export const globalStyles = StyleSheet.create({
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#8A2BE2', // Purple brand color
+    color: '#5F7282', // Purple brand color
     textAlign: 'center',
     marginBottom: 20,
   },
   subHeaderText: {
     fontSize: 16,
-    color: '#555',
+    color: '#9D489E',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  label: {
+    fontWeight: 'bold',
+    color: '#5F7282',
   },
   input: {
     backgroundColor: '#FFF',
@@ -30,11 +34,12 @@ export const globalStyles = StyleSheet.create({
     fontSize: 16,
   },
   primaryButton: {
-    backgroundColor: '#8A2BE2',
+    backgroundColor: '#9D489E',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+    marginHorizontal: 60,
   },
   primaryButtonText: {
     color: '#FFF',
@@ -42,8 +47,10 @@ export const globalStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
   linkText: {
-    color: '#8A2BE2',
+    color: '#677987',
+    fontWeight: 'bold',
     textAlign: 'center',
+    textDecorationLine: 'underline',
     marginTop: 15,
     fontSize: 14,
   },
