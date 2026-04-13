@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Image
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { globalStyles } from '../constants/globalStyles';
+import { apiClient } from "@/utils/apiClient";
 
 export default function Login() {
   const router = useRouter();
 
-  // State to hold user input
+  // Estados
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
-  // State to manage the loading spinner
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
-    // Basic validation
     if (!username || !password) {
       Alert.alert('Error', 'Por favor, ingrese su usuario y contraseña.');
       return;
@@ -23,11 +33,8 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://comedip.pythonanywhere.com/api/cliente/seguridad/login/', {
+      const response = await apiClient('/seguridad/login/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           username: username.trim(),
           password: password,
@@ -37,22 +44,15 @@ export default function Login() {
 
       const data = await response.json();
 
-      // Check against your API's standard success structure
       if (data.status === 'success' && data.statusCode === 200) {
-
-        // TODO: Save the token (data.data.token) and user info securely here.
-        // E.g., using Expo SecureStore: await SecureStore.setItemAsync('userToken', data.data.token);
-
-        // Navigate to the Dashboard
-        router.replace('/dashboard'); // Using replace instead of push prevents them from going "back" to login
-
+        await SecureStore.setItemAsync('userToken', data.data.token);
+        await SecureStore.setItemAsync('userData', JSON.stringify(data.data.usuario));
+        router.replace('/dashboard');
       } else {
-        // Handle API-level errors (e.g., incorrect credentials)
         Alert.alert('Error', data.message || 'Credenciales incorrectas.');
       }
     } catch (error) {
-      // Handle network errors
-      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor. Intente más tarde.');
+      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor.');
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -60,55 +60,78 @@ export default function Login() {
   };
 
   return (
-    <View style={globalStyles.container}>
-      {/* Logo centrado */}
-      <Image
-        source={require('../assets/images/logo.png')} // Asegúrate de que esta ruta sea correcta en tu proyecto
-        style={{
-          width: 120,
-          height: 120,
-          alignSelf: 'center',
-          marginBottom: 30,
-        }}
-        resizeMode="contain"
-      />
+    <KeyboardAwareScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true} // Obligatorio para que Expo/Android lo reconozca
+      extraScrollHeight={20} // Da un pequeño margen para que el input no quede pegado al teclado
+      bounces={false} // Evita el efecto rebote molesto en iOS
+    >
+      <View style={globalStyles.container}>
+        {/* Logo */}
+        <Image
+          source={require('../assets/images/logo.png')}
+          style={globalStyles.logo}
+          resizeMode="contain"
+        />
 
-      <Text style={globalStyles.headerText}>INICIAR SESIÓN</Text>
+        <Text style={globalStyles.headerText}>INICIAR SESIÓN</Text>
 
-      <Text style={globalStyles.label}>USUARIO</Text>
-      <TextInput
-        style={globalStyles.input}
-        placeholder="Usuario (ej. correo@dominio.com)"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+        {/* Input Usuario */}
+        <Text style={globalStyles.label}>USUARIO</Text>
+        <View style={globalStyles.inputContainer}>
+          <TextInput
+            style={globalStyles.input}
+            placeholder="USUARIO"
+            placeholderTextColor="#A0AAB2"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+          />
+        </View>
 
-      <Text style={globalStyles.label}>CONTRASEÑA</Text>
-      <TextInput
-        style={[globalStyles.input, {marginBottom: 32}]}
-        placeholder="************"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        {/* Input Contraseña */}
+        <Text style={globalStyles.label}>CONTRASEÑA</Text>
+        <View style={globalStyles.inputContainer}>
+          <TextInput
+            style={globalStyles.input}
+            placeholder="************"
+            placeholderTextColor="#A0AAB2"
+            secureTextEntry={!isPasswordVisible}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+          >
+            <Ionicons
+              name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+              size={22}
+              color="#5F7282"
+            />
+          </TouchableOpacity>
+        </View>
 
-      <TouchableOpacity
-        style={[globalStyles.primaryButton, isLoading && { opacity: 0.7 }]}
-        onPress={handleLogin}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={globalStyles.primaryButtonText}>INGRESAR</Text>
-        )}
-      </TouchableOpacity>
+        {/* Botón Ingresar */}
+        <TouchableOpacity
+          style={[globalStyles.primaryButton, isLoading && { opacity: 0.7 }]}
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={globalStyles.primaryButtonText}>INGRESAR</Text>
+          )}
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/recover-password')} disabled={isLoading}>
-        <Text style={[globalStyles.linkText, {marginTop: 24 }]}>RECUPERAR CONTRASEÑA</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          onPress={() => router.push('/request-reset')}
+          disabled={isLoading}
+        >
+          <Text style={globalStyles.linkText}>RECUPERAR CONTRASEÑA</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAwareScrollView>
   );
 }
