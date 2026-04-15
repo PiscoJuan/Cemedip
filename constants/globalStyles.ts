@@ -206,7 +206,6 @@ primaryButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 40,
     marginBottom: 20,
   },
   welcomeText: {

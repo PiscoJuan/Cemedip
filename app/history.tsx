@@ -10,14 +10,15 @@ import {
   Alert,
   ScrollView,
   Image,
-  SafeAreaView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
 import { BottomNavbar } from '../components/BottomNavbar';
 import { CustomDrawer } from '../components/CustomDrawer';
+import {MainHeader} from "@/components/MainHeader";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -122,19 +123,9 @@ export default function HistoryScreen() {
   if (isReviewMode && selectedDetail) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-        <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
-          <TouchableOpacity onPress={() => setMenuVisible(true)}>
-            <Ionicons name="menu" size={35} color="#9D489E" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
-            if (router.canGoBack()) {
-              router.dismissAll();
-            }
-            router.replace('/dashboard');}
-          }>
-             <Ionicons name="person-circle-outline" size={40} color="#9D489E" />
-          </TouchableOpacity>
-        </View>
+        <MainHeader
+          onOpenMenu={() => setMenuVisible(true)}
+        />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={{ padding: 25 }}>
@@ -203,12 +194,9 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Ionicons name="menu" size={38} color="#9D489E" />
-        </TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={42} color="#9D489E" />
-      </View>
+      <MainHeader
+        onOpenMenu={() => setMenuVisible(true)}
+      />
 
       <View style={{ flex: 1, paddingHorizontal: 25 }}>
         <View style={{ marginBottom: 20 }}>

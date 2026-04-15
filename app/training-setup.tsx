@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ActivityIndicator, ScrollView,
-  Alert, Modal, FlatList, SafeAreaView, Pressable, BackHandler
+  Alert, Modal, FlatList, Pressable, BackHandler
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { globalStyles } from '../constants/globalStyles';
@@ -10,6 +11,7 @@ import { apiClient } from "@/utils/apiClient";
 import { CustomDrawer } from '../components/CustomDrawer';
 import { BottomNavbar } from '../components/BottomNavbar';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {MainHeader} from "@/components/MainHeader";
 
 export default function TrainingSetup() {
   const router = useRouter();
@@ -140,12 +142,9 @@ export default function TrainingSetup() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Ionicons name="menu" size={38} color="#9D489E" />
-        </TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={42} color="#9D489E" />
-      </View>
+      <MainHeader
+        onOpenMenu={() => setMenuVisible(true)}
+      />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 25, paddingBottom: 100 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

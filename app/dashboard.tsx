@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Image } from 'react-native'; // <-- Added Image here
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native'; // <-- Added Image here
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { globalStyles } from '../constants/globalStyles';
 import { CustomDrawer } from '../components/CustomDrawer';
 import { BottomNavbar } from '../components/BottomNavbar';
 import { router } from "expo-router";
+import {MainHeader} from "@/components/MainHeader";
 
 export default function Dashboard() {
   const [userName, setUserName] = useState('USUARIO');
@@ -23,13 +25,10 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Ionicons name="menu" size={38} color="#9D489E" />
-        </TouchableOpacity>
-        <Ionicons name="person-circle-outline" size={42} color="#9D489E" />
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }} edges={['top']}>
+      <MainHeader
+        onOpenMenu={() => setMenuVisible(true)}
+      />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
         <Text style={globalStyles.welcomeText}>BIENVENIDO, {userName}!</Text>

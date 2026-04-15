@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +8,7 @@ import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
 import { BottomNavbar } from '../components/BottomNavbar';
 import { CustomDrawer } from '../components/CustomDrawer';
+import {MainHeader} from "@/components/MainHeader";
 
 export default function TrainingExam() {
   const router = useRouter();
@@ -145,14 +147,9 @@ export default function TrainingExam() {
   if (isReviewMode) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-        <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
-          <TouchableOpacity onPress={() => setMenuVisible(true)}>
-            <Ionicons name="menu" size={35} color="#9D489E" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace('/dashboard')}>
-             <Ionicons name="person-circle-outline" size={40} color="#9D489E" />
-          </TouchableOpacity>
-        </View>
+        <MainHeader
+        onOpenMenu={() => setMenuVisible(true)}
+      />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={{ padding: 25 }}>
