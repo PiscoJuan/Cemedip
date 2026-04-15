@@ -1,90 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Image } from 'react-native'; // <-- Added Image here
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { globalStyles } from '../constants/globalStyles';
-import {apiClient} from "@/utils/apiClient";
+import { CustomDrawer } from '../components/CustomDrawer';
+import { BottomNavbar } from '../components/BottomNavbar';
+import { router } from "expo-router";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const [userName, setUserName] = useState('');
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userName, setUserName] = useState('USUARIO');
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const userDataString = await SecureStore.getItemAsync('userData');
-        if (userDataString) {
-          const userData = JSON.parse(userDataString);
-
-          let displayName = userData.nombre_completo || userData.username || 'USUARIO';
-
-          if (userData.nombre_completo) {
-            displayName = userData.nombre_completo.split(' ')[0];
-          }
-
-          setUserName(displayName.toUpperCase());
-        }
-      } catch (error) {
-        console.error("Error al cargar los datos del usuario", error);
+    const loadUser = async () => {
+      const data = await SecureStore.getItemAsync('userData');
+      if (data) {
+        const user = JSON.parse(data);
+        setUserName((user.nombre_completo?.split(' ')[0] || 'ALBERTO').toUpperCase());
       }
     };
-
-    loadUserData();
+    loadUser();
   }, []);
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-
-    try {
-      const token = await SecureStore.getItemAsync('userToken');
-
-      if (token) {
-        await apiClient('/seguridad/logout/', {
-          method: 'POST',
-        });
-      }
-
-      await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userData');
-
-      router.replace('/login');
-
-    } catch (error) {
-      console.error('Error durante el logout:', error);
-      Alert.alert('Error', 'Hubo un problema al cerrar la sesión.');
-      setIsLoggingOut(false);
-    }
-  };
-
   return (
-    <View style={globalStyles.container}>
-      <Text style={globalStyles.headerText}>BIENVENIDO, {userName}!</Text>
-
-      <TouchableOpacity style={globalStyles.card} onPress={() => router.push('/training-setup')}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>TRAINING</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={globalStyles.card} onPress={() => router.push('/online-exam')}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>EXAMEN</Text>
-      </TouchableOpacity>
-
-      <Text style={{ marginTop: 20, fontWeight: 'bold' }}>PROGRESO</Text>
-      <View style={globalStyles.card}>
-        <Text>EXAMEN DE PRÁCTICA - 50% - 06/04/2026</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <Ionicons name="menu" size={38} color="#9D489E" />
+        </TouchableOpacity>
+        <Ionicons name="person-circle-outline" size={42} color="#9D489E" />
       </View>
 
-      <TouchableOpacity
-        style={[globalStyles.primaryButton, { backgroundColor: '#FF3B30', marginTop: 40 }]}
-        onPress={handleLogout}
-        disabled={isLoggingOut}
-      >
-        {isLoggingOut ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={globalStyles.primaryButtonText}>LOGOUT TEMPORAL</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+        <Text style={globalStyles.welcomeText}>BIENVENIDO, {userName}!</Text>
+
+        <TouchableOpacity style={globalStyles.mainCard} onPress={() => router.push('/training-setup')}>
+          <View style={globalStyles.iconContainer}>
+            <Image
+              source={require('../assets/images/Recurso 11.png')}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={globalStyles.mainCardText}>TRAINING</Text>
+          <Ionicons name="chevron-forward" size={30} color="white" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={globalStyles.mainCard}>
+          <View style={globalStyles.iconContainer}>
+             <Image
+              source={require('../assets/images/Recurso 12.png')}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={globalStyles.mainCardText}>EXAMEN</Text>
+          <Ionicons name="chevron-forward" size={30} color="white" />
+        </TouchableOpacity>
+
+        <Text style={globalStyles.sectionTitle}>PROGRESO</Text>
+
+        {[50, 10].map((val, i) => (
+          <View key={i} style={globalStyles.progressCard}>
+            <MaterialCommunityIcons name="pencil-outline" size={24} color="#5F7282" />
+            <View style={globalStyles.progressTextContainer}>
+              <Text style={globalStyles.progressTitle}>EXAMEN DE PRÁCTICA</Text>
+              <Text style={globalStyles.progressSub}>ESPECIALIDAD, TEMA</Text>
+              <Text style={globalStyles.progressSub}>06/04/2026</Text>
+            </View>
+            <Text style={globalStyles.progressPercent}>{val}%</Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <BottomNavbar />
+    </SafeAreaView>
   );
 }

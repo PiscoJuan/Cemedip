@@ -1,287 +1,239 @@
-  import React, { useState, useEffect } from 'react';
-  import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Modal, FlatList } from 'react-native';
-  import { useRouter } from 'expo-router';
-  import * as SecureStore from 'expo-secure-store';
-  import { globalStyles } from '../constants/globalStyles';
-  import {apiClient} from "@/utils/apiClient";
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, ActivityIndicator, ScrollView,
+  Alert, Modal, FlatList, SafeAreaView, Pressable, BackHandler
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { globalStyles } from '../constants/globalStyles';
+import { apiClient } from "@/utils/apiClient";
+import { CustomDrawer } from '../components/CustomDrawer';
+import { BottomNavbar } from '../components/BottomNavbar';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-  export default function TrainingSetup() {
-    const router = useRouter();
+export default function TrainingSetup() {
+  const router = useRouter();
 
-    // Estados de datos de la API
-    const [especialidades, setEspecialidades] = useState([]);
-    const [tipos, setTipos] = useState([]);
-    const [temas, setTemas] = useState([]);
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        router.replace('/dashboard');
+        return true;
+      };
 
-    // Estados de carga
-    const [isLoadingEsp, setIsLoadingEsp] = useState(true);
-    const [isLoadingTipos, setIsLoadingTipos] = useState(false);
-    const [isLoadingTemas, setIsLoadingTemas] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
+      const backHandlerSubscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
-    // Estados de selecciones del usuario
-    const [selectedEsp, setSelectedEsp] = useState(null);
-    const [selectedTipo, setSelectedTipo] = useState(null);
-    const [selectedTema, setSelectedTema] = useState(null);
-    const [selectedPreguntas, setSelectedPreguntas] = useState(null);
+      return () => {
+        backHandlerSubscription.remove();
+      };
+    }, [router])
+  );
 
-    // Estados para el Modal (Dropdown personalizado)
-    const [modalVisible, setModalVisible] = useState(false);
-    const [modalData, setModalData] = useState([]);
-    const [currentSelectionType, setCurrentSelectionType] = useState(null);
+  const [especialidades, setEspecialidades] = useState([]);
+  const [tipos, setTipos] = useState([]);
+  const [temas, setTemas] = useState([]);
 
-    const opcionesPreguntas = [5, 10, 20, 25, 30, 40, 50, 100];
+  const [isLoadingEsp, setIsLoadingEsp] = useState(true);
+  const [isLoadingTipos, setIsLoadingTipos] = useState(false);
+  const [isLoadingTemas, setIsLoadingTemas] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-    // ==========================================
-    // FUNCIONES DE AYUDA (Extraen el nombre y el ID correcto)
-    // ==========================================
-    const getItemId = (item) => item?.id_especialidad || item?.id_tipo || item?.id_tema || item?.id || item?.pk;
-    const getItemName = (item) => item?.nombre || item?.descripcion || item?.name || 'Seleccionado';
+  const [selectedEsp, setSelectedEsp] = useState(null);
+  const [selectedTipo, setSelectedTipo] = useState(null);
+  const [selectedTema, setSelectedTema] = useState(null);
+  const [selectedPreguntas, setSelectedPreguntas] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [currentSelectionType, setCurrentSelectionType] = useState(null);
 
-    // 1. Cargar Especialidades al iniciar
-    useEffect(() => {
-      fetchEspecialidades();
-    }, []);
+  const opcionesPreguntas = [5, 10, 20, 25, 30, 40, 50, 100];
 
-    const fetchEspecialidades = async () => {
-      setIsLoadingEsp(true);
-      try {
-        const response = await apiClient('/preguntas/especialidades/');
-        const data = await response.json();
-        setEspecialidades(data.data || data || []);
-      } catch (error) {
-        Alert.alert('Error', 'No se pudieron cargar las especialidades.');
-      } finally {
-        setIsLoadingEsp(false);
-      }
-    };
+  useEffect(() => { fetchEspecialidades(); }, []);
 
-    // 2. Cargar Tipos basados en la Especialidad
-    const fetchTipos = async (espId) => {
-      setIsLoadingTipos(true);
-      try {
-        const response = await apiClient(`/preguntas/tipos/?especialidades=${espId}`);
-        const data = await response.json();
-        setTipos(data.data || data || []);
-      } catch (error) {
-        Alert.alert('Error', 'No se pudieron cargar los tipos.');
-      } finally {
-        setIsLoadingTipos(false);
-      }
-    };
+  const fetchEspecialidades = async () => {
+    setIsLoadingEsp(true);
+    try {
+      const response = await apiClient('/preguntas/especialidades/');
+      const data = await response.json();
+      setEspecialidades(data.data || data || []);
+    } catch (error) { Alert.alert('Error', 'No se cargaron especialidades.'); }
+    finally { setIsLoadingEsp(false); }
+  };
 
-    // 3. Cargar Temas basados en Especialidad y Tipo
-    const fetchTemas = async (espId, tipoId) => {
-      setIsLoadingTemas(true);
-      try {
-        const response = await apiClient(`/preguntas/temas/?especialidades=${espId}&tipos=${tipoId}`);
-        const data = await response.json();
-        setTemas(data.data || data || []);
-      } catch (error) {
-        Alert.alert('Error', 'No se pudieron cargar los temas.');
-      } finally {
-        setIsLoadingTemas(false);
-      }
-    };
+  const fetchTipos = async (espId) => {
+    setIsLoadingTipos(true);
+    try {
+      const response = await apiClient(`/preguntas/tipos/?especialidades=${espId}`);
+      const data = await response.json();
+      setTipos(data.data || data || []);
+    } catch (error) { Alert.alert('Error', 'No se cargaron tipos.'); }
+    finally { setIsLoadingTipos(false); }
+  };
 
-    // Lógica para abrir el modal correcto
-    const openModal = (type) => {
-      setCurrentSelectionType(type);
-      if (type === 'esp') setModalData(especialidades);
-      if (type === 'tipo') setModalData(tipos);
-      if (type === 'tema') setModalData(temas);
-      setModalVisible(true);
-    };
+  const fetchTemas = async (espId, tipoId) => {
+    setIsLoadingTemas(true);
+    try {
+      const response = await apiClient(`/preguntas/temas/?especialidades=${espId}&tipos=${tipoId}`);
+      const data = await response.json();
+      setTemas(data.data || data || []);
+    } catch (error) { Alert.alert('Error', 'No se cargaron temas.'); }
+    finally { setIsLoadingTemas(false); }
+  };
 
-    // Lógica al seleccionar un ítem de la lista
-    const handleSelectItem = (item) => {
-      setModalVisible(false);
+  const getItemId = (item) => item?.id_especialidad || item?.id_tipo || item?.id_tema || item?.id || item?.pk;
+  const getItemName = (item) => (item?.nombre || item?.descripcion || 'SELECCIONADO').toUpperCase();
 
-      const itemId = getItemId(item);
+  const handleSelectItem = (item) => {
+    const id = getItemId(item);
+    setModalVisible(false);
+    if (currentSelectionType === 'esp') {
+      setSelectedEsp(item); setSelectedTipo(null); setSelectedTema(null);
+      fetchTipos(id);
+    } else if (currentSelectionType === 'tipo') {
+      setSelectedTipo(item); setSelectedTema(null);
+      fetchTemas(getItemId(selectedEsp), id);
+    } else {
+      setSelectedTema(item);
+    }
+  };
 
-      if (currentSelectionType === 'esp') {
-        setSelectedEsp(item);
-        setSelectedTipo(null);
-        setSelectedTema(null);
-        setTipos([]);
-        setTemas([]);
-        fetchTipos(itemId);
-      } else if (currentSelectionType === 'tipo') {
-        setSelectedTipo(item);
-        setSelectedTema(null);
-        setTemas([]);
-        fetchTemas(getItemId(selectedEsp), itemId);
-      } else if (currentSelectionType === 'tema') {
-        setSelectedTema(item);
-      }
-    };
+  const handleIniciar = async () => {
+    if (!selectedEsp || !selectedTipo || !selectedTema || !selectedPreguntas) {
+      Alert.alert('Atención', 'Por favor completa todos los campos.');
+      return;
+    }
 
-    const handleContinuar = async () => {
-      // ==========================================
-      // NOTA: Descomenta esta validación cuando termines tus pruebas
-      // if (!selectedEsp || !selectedTipo || !selectedTema || !selectedPreguntas) {
-      //   Alert.alert('Atención', 'Por favor completa todos los campos antes de continuar.');
-      //   return;
-      // }
-      // ==========================================
+    setIsCreating(true);
+    try {
+      await AsyncStorage.setItem('TOTALPREGS', '0');
+      await AsyncStorage.setItem('TOTALPREGSCORRECTAS', '0');
 
-      setIsCreating(true);
+      const response = await apiClient('/evaluaciones/training/', {
+        method: 'POST',
+        body: JSON.stringify({
+          especialidades: [getItemId(selectedEsp)],
+          tipos: [getItemId(selectedTipo)],
+          temas: [getItemId(selectedTema)],
+          numero_preguntas: String(selectedPreguntas)
+        })
+      });
 
-      try {
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if (!token) {
-          Alert.alert('Error', 'No hay sesión activa. Vuelve a iniciar sesión.');
-          setIsCreating(false);
-          return;
-        }
-
-        // Usamos getItemId para asegurar que mandamos el número correcto al backend
-        const espId = selectedEsp ? getItemId(selectedEsp) : 9;
-        const tipoId = selectedTipo ? getItemId(selectedTipo) : 32;
-        const temaId = selectedTema ? getItemId(selectedTema) : 233;
-        const cantPreguntas = selectedPreguntas || 5;
-
-        const response = await apiClient('/evaluaciones/training/', {
-          method: 'POST',
-          body: JSON.stringify({
-            especialidades: [espId],
-            tipos: [tipoId],
-            temas: [temaId],
-            numero_preguntas: String(cantPreguntas)
-          })
-        });
-
-
-        const data = await response.json();
-        console.log("=== RESPUESTA AL CREAR TRAINING ===", JSON.stringify(data, null, 2));
-
-        if (response.ok || data.status === 'success' || data.statusCode === 201) {
-
-        // ¡AQUÍ ESTÁ LA MAGIA! Capturamos id_intento directamente
-        const newTrainingId = data.data?.id_intento;
-
+      const data = await response.json();
+      if (response.ok || data.status === 'success') {
         router.push({
           pathname: '/training-exam',
-          params: { trainingId: newTrainingId }
+          params: {
+            trainingId: data.data?.id_intento,
+            totalLimit: String(selectedPreguntas)
+          }
         });
       } else {
-        Alert.alert('Error', data.message || data.error || 'No se pudo crear el training.');
+        Alert.alert('Error', data.message || 'Error al crear.');
       }
+    } catch (error) { Alert.alert('Error', 'Error de conexión.'); }
+    finally { setIsCreating(false); }
+  };
 
-      } catch (error) {
-        console.error('Error creando training:', error);
-        Alert.alert('Error', 'Problema de conexión con el servidor.');
-      } finally {
-        setIsCreating(false);
-      }
-    };
-
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingVertical: 40 }}>
-          <Text style={globalStyles.headerText}>TRAINING</Text>
-
-          <Text style={[globalStyles.label, { marginTop: 20 }]}>ESPECIALIDAD</Text>
-          <TouchableOpacity
-            style={globalStyles.card}
-            onPress={() => openModal('esp')}
-            disabled={isLoadingEsp}
-          >
-            {isLoadingEsp ? <ActivityIndicator color="#8A2BE2" /> : (
-              <Text style={{ color: selectedEsp ? '#000' : '#555', fontWeight: selectedEsp ? 'bold' : 'normal' }}>
-                {selectedEsp ? getItemName(selectedEsp) : 'ELIGE UNA ESPECIALIDAD ▼'}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={[globalStyles.label, { marginTop: 20 }]}>TIPO DE ESPECIALIDAD</Text>
-          <TouchableOpacity
-            style={[globalStyles.card, !selectedEsp && { opacity: 0.5 }]}
-            onPress={() => openModal('tipo')}
-            disabled={!selectedEsp || isLoadingTipos}
-          >
-            {isLoadingTipos ? <ActivityIndicator color="#8A2BE2" /> : (
-              <Text style={{ color: selectedTipo ? '#000' : '#555', fontWeight: selectedTipo ? 'bold' : 'normal' }}>
-                {selectedTipo ? getItemName(selectedTipo) : 'ELIGE UN TIPO ▼'}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={[globalStyles.label, { marginTop: 20 }]}>TEMA</Text>
-          <TouchableOpacity
-            style={[globalStyles.card, !selectedTipo && { opacity: 0.5 }]}
-            onPress={() => openModal('tema')}
-            disabled={!selectedTipo || isLoadingTemas}
-          >
-            {isLoadingTemas ? <ActivityIndicator color="#8A2BE2" /> : (
-              <Text style={{ color: selectedTema ? '#000' : '#555', fontWeight: selectedTema ? 'bold' : 'normal' }}>
-                {selectedTema ? getItemName(selectedTema) : 'ELIGE UN TEMA ▼'}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={[globalStyles.label, { marginTop: 20 }]}>NÚMERO DE PREGUNTAS</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 30 }}>
-            {opcionesPreguntas.map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={[
-                  globalStyles.card,
-                  { width: '48%', padding: 15, alignItems: 'center' },
-                  selectedPreguntas === num && { borderColor: '#8A2BE2', borderWidth: 2 }
-                ]}
-                onPress={() => setSelectedPreguntas(num)}
-              >
-                <Text style={{ fontWeight: selectedPreguntas === num ? 'bold' : 'normal', color: selectedPreguntas === num ? '#8A2BE2' : '#000' }}>
-                  {num} PREGUNTAS
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={[globalStyles.primaryButton, isCreating && { opacity: 0.7 }]}
-            onPress={handleContinuar}
-            disabled={isCreating}
-          >
-            {isCreating ? <ActivityIndicator color="#FFF" /> : <Text style={globalStyles.primaryButtonText}>CONTINUAR</Text>}
-          </TouchableOpacity>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-
-        <Modal visible={modalVisible} transparent={true} animationType="fade">
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
-            <View style={{ backgroundColor: '#FFF', borderRadius: 10, padding: 20, maxHeight: '80%' }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Selecciona una opción</Text>
-
-              {modalData.length === 0 ? (
-                <Text style={{ textAlign: 'center', color: '#555', padding: 20 }}>No hay opciones disponibles</Text>
-              ) : (
-                <FlatList
-                  data={modalData}
-                  keyExtractor={(item, index) => (getItemId(item) || index).toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' }}
-                      onPress={() => handleSelectItem(item)}
-                    >
-                      <Text style={{ fontSize: 16 }}>{getItemName(item)}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-
-              <TouchableOpacity
-                style={{ marginTop: 20, padding: 15, backgroundColor: '#EEE', borderRadius: 8, alignItems: 'center' }}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={{ fontWeight: 'bold', color: '#333' }}>CANCELAR</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <Ionicons name="menu" size={38} color="#9D489E" />
+        </TouchableOpacity>
+        <Ionicons name="person-circle-outline" size={42} color="#9D489E" />
       </View>
-    );
-  }
+
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 25, paddingBottom: 100 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={[globalStyles.headerText, { marginBottom: 0, textAlign: 'left' }]}>TRAINING</Text>
+          <TouchableOpacity style={globalStyles.historialButton} onPress={() => router.push('/history')}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>HISTORIAL</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={globalStyles.label}>ESPECIALIDAD</Text>
+        <TouchableOpacity style={globalStyles.selectContainer} onPress={() => { setCurrentSelectionType('esp'); setModalData(especialidades); setModalVisible(true); }}>
+          <Text style={[globalStyles.selectText, selectedEsp && { color: '#5F7282' }]}>
+            {selectedEsp ? getItemName(selectedEsp) : 'ELIGE UNA ESPECIALIDAD'}
+          </Text>
+          <Ionicons name="chevron-down" size={20} color="#5F7282" />
+        </TouchableOpacity>
+
+        <Text style={globalStyles.label}>TIPO</Text>
+        <TouchableOpacity
+          style={[globalStyles.selectContainer, !selectedEsp && { opacity: 0.5 }]}
+          disabled={!selectedEsp || isLoadingTipos}
+          onPress={() => { setCurrentSelectionType('tipo'); setModalData(tipos); setModalVisible(true); }}
+        >
+          {isLoadingTipos ? <ActivityIndicator size="small" color="#9D489E" /> : (
+            <Text style={[globalStyles.selectText, selectedTipo && { color: '#5F7282' }]}>
+              {selectedTipo ? getItemName(selectedTipo) : 'ELIGE UN TIPO'}
+            </Text>
+          )}
+          <Ionicons name="chevron-down" size={20} color="#5F7282" />
+        </TouchableOpacity>
+
+        <Text style={globalStyles.label}>TEMA</Text>
+        <TouchableOpacity
+          style={[globalStyles.selectContainer, !selectedTipo && { opacity: 0.5 }]}
+          disabled={!selectedTipo || isLoadingTemas}
+          onPress={() => { setCurrentSelectionType('tema'); setModalData(temas); setModalVisible(true); }}
+        >
+          {isLoadingTemas ? <ActivityIndicator size="small" color="#9D489E" /> : (
+            <Text style={[globalStyles.selectText, selectedTema && { color: '#5F7282' }]}>
+              {selectedTema ? getItemName(selectedTema) : 'ELIGE UN TEMA'}
+            </Text>
+          )}
+          <Ionicons name="chevron-down" size={20} color="#5F7282" />
+        </TouchableOpacity>
+
+        <Text style={globalStyles.label}>NÚMERO DE PREGUNTAS</Text>
+        <View style={globalStyles.questionGrid}>
+          {opcionesPreguntas.map((num) => (
+            <TouchableOpacity
+              key={num}
+              style={[globalStyles.questionOption, selectedPreguntas === num && globalStyles.questionOptionSelected]}
+              onPress={() => setSelectedPreguntas(num)}
+            >
+              <Text style={[globalStyles.questionOptionText, selectedPreguntas === num && { color: 'white' }]}>
+                {num} PREGUNTAS
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={[globalStyles.primaryButton, { marginHorizontal: 30, marginTop: 10 }]}
+          onPress={handleIniciar}
+          disabled={isCreating}
+        >
+          {isCreating ? <ActivityIndicator color="#FFF" /> : <Text style={globalStyles.primaryButtonText}>INICIAR</Text>}
+        </TouchableOpacity>
+      </ScrollView>
+
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 30 }} onPress={() => setModalVisible(false)}>
+          <View style={{ backgroundColor: 'white', borderRadius: 15, padding: 20, maxHeight: '70%' }}>
+            <Text style={{ fontWeight: 'bold', color: '#5F7282', marginBottom: 15, textAlign: 'center' }}>SELECCIONA UNA OPCIÓN</Text>
+            <FlatList
+              data={modalData}
+              keyExtractor={(item, index) => (getItemId(item) || index).toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' }} onPress={() => handleSelectItem(item)}>
+                  <Text style={{ color: '#5F7282', fontWeight: 'bold' }}>{getItemName(item)}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+
+      <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <BottomNavbar />
+    </SafeAreaView>
+  );
+}

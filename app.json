@@ -4,7 +4,12 @@
     "slug": "Cemedip",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Recurso 4.png",
+    "splash": {
+      "image": "./assets/images/Recurso 3.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#9C489E"
+    },
     "scheme": "cemedip",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

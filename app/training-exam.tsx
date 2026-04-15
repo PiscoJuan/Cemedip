@@ -1,279 +1,361 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView, Modal, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
+import { BottomNavbar } from '../components/BottomNavbar';
+import { CustomDrawer } from '../components/CustomDrawer';
 
 export default function TrainingExam() {
   const router = useRouter();
-  const { trainingId } = useLocalSearchParams();
+  const { trainingId, totalLimit } = useLocalSearchParams();
 
   const [preguntas, setPreguntas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAnswering, setIsAnswering] = useState(false); // Nuevo estado para la carga al responder
+  const [isAnswering, setIsAnswering] = useState(false);
   const [respuestas, setRespuestas] = useState({});
   const [segundosTranscurridos, setSegundosTranscurridos] = useState(0);
-
-  // Nuevo estado para guardar la retroalimentación de la pregunta actual
   const [feedback, setFeedback] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPreguntas, setTotalPreguntas] = useState(parseInt(totalLimit || '0'));
   const [hasNextPage, setHasNextPage] = useState(true);
+  const [showResults, setShowResults] = useState(false);
+  const [finalStorage, setFinalStorage] = useState({ t: 0, c: 0 });
+
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [reviewData, setReviewData] = useState([]);
+  const [loadingReview, setLoadingReview] = useState(false);
 
   const fetchPreguntas = async (page) => {
     setIsLoading(true);
-    setFeedback(null); // Limpiamos el feedback al cambiar de página
-    setRespuestas({}); // Limpiamos la selección
-
+    setFeedback(null);
+    setRespuestas({});
     try {
-      const response = await apiClient(`/evaluaciones/training/${trainingId}/pregunta/${page}/`, {
-        method: 'GET',
-      });
-
+      const response = await apiClient(`/evaluaciones/training/${trainingId}/pregunta/${page}/`);
       const data = await response.json();
-      console.log('=== RESPUESTA POST (AL RESPONDER) 1===', JSON.stringify(data, null, 2));
-      if (response.ok || data.status === 'success' || data.statusCode === 200) {
-        setPreguntas(data.data ? [data.data] : []);
-        setHasNextPage(true);
-      } else if (data.statusCode === 404) {
-        setPreguntas([]);
-        setHasNextPage(false);
-      } else {
-        Alert.alert('Error', data.message || 'No se pudieron cargar las preguntas.');
+      if ((response.ok || data.status === 'success') && data.data) {
+        setPreguntas([data.data]);
+        const totalApi = data.data.total_preguntas || data.total_preguntas;
+        if (totalApi) setTotalPreguntas(totalApi);
+        setHasNextPage(page < (totalApi || totalPreguntas));
       }
-    } catch (error) {
-      console.error('Error fetching exam:', error);
-      Alert.alert('Error', 'Fallo de conexión al cargar el examen.');
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (error) { console.error('Error fetching:', error); }
+    finally { setIsLoading(false); }
   };
 
-  useEffect(() => {
-    if (trainingId) {
-      fetchPreguntas(currentPage);
-    } else {
-      Alert.alert('Error', 'No se proporcionó un ID de examen.');
-      setIsLoading(false);
-    }
-  }, [trainingId, currentPage]);
+  useEffect(() => { if (trainingId && !isReviewMode) fetchPreguntas(currentPage); }, [trainingId, currentPage, isReviewMode]);
 
   useEffect(() => {
-    const intervalo = setInterval(() => {
-      setSegundosTranscurridos((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(intervalo);
+    const i = setInterval(() => setSegundosTranscurridos(s => s + 1), 1000);
+    return () => clearInterval(i);
   }, []);
-
-  const formatearTiempo = (totalSegundos) => {
-    const minutos = Math.floor(totalSegundos / 60);
-    const segundos = totalSegundos % 60;
-    return `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-  };
 
   const handleSelectOption = async (preguntaId, opcionId) => {
     if (feedback || isAnswering) return;
-
-    setRespuestas(prev => ({
-      ...prev,
-      [preguntaId]: opcionId
-    }));
     setIsAnswering(true);
+    setRespuestas(prev => ({ ...prev, [preguntaId]: opcionId }));
 
     try {
       const response = await apiClient(`/evaluaciones/training/${trainingId}/pregunta/${currentPage}/`, {
         method: 'POST',
-        body: JSON.stringify({
-          id_alternativa_intento: opcionId
-        })
+        body: JSON.stringify({ id_alternativa_intento: opcionId })
       });
-
       const data = await response.json();
-      console.log('=== DATA RECIBIDA ===', JSON.stringify(data, null, 2));
 
-      if (response.ok || data.status === 'success' || data.statusCode === 200) {
-
+      if (response.ok || data.status === 'success') {
         const resData = data.data;
+        const sTotal = await AsyncStorage.getItem('TOTALPREGS');
+        await AsyncStorage.setItem('TOTALPREGS', (parseInt(sTotal || '0') + 1).toString());
 
-        // 1. Buscamos cuál de las alternativas que devolvió el POST es la correcta
-        const alternativaCorrecta = resData.alternativas?.find(alt => alt.es_correcta === true);
+        if (resData.es_correcta) {
+          const sCorr = await AsyncStorage.getItem('TOTALPREGSCORRECTAS');
+          await AsyncStorage.setItem('TOTALPREGSCORRECTAS', (parseInt(sCorr || '0') + 1).toString());
+        }
 
+        const altCorr = resData.alternativas?.find(a => a.es_correcta === true);
         setFeedback({
-          esCorrecta: resData.es_correcta, // Viene directo en data.data.es_correcta
-          correctaId: alternativaCorrecta?.id_alternativa_intento, // Sacamos el ID de la que encontramos
-          explicacion: resData.feedback?.justificacion || 'Sin explicación disponible.' // Está dentro de feedback
+          esCorrecta: resData.es_correcta,
+          correctaId: altCorr?.id_alternativa_intento,
+          explicacion: resData.feedback?.justificacion || 'Sin explicación.'
         });
 
-      } else {
-        Alert.alert('Error', data.message || 'No se pudo guardar la respuesta.');
-        setRespuestas({});
+        if (resData.total_preguntas) {
+          setTotalPreguntas(resData.total_preguntas);
+          setHasNextPage(currentPage < resData.total_preguntas);
+        }
       }
-    } catch (error) {
-      console.error('Error al guardar la respuesta:', error);
-      Alert.alert('Error', 'Problema de conexión.');
-      setRespuestas({});
-    } finally {
-      setIsAnswering(false);
-    }
-  };
-
-  const handleSiguientePagina = () => {
-    setCurrentPage(prev => prev + 1);
+    } catch (error) { Alert.alert('Error', 'Fallo de conexión.'); }
+    finally { setIsAnswering(false); }
   };
 
   const handleTerminar = async () => {
     setIsSubmitting(true);
     try {
-      const response = await apiClient('/evaluaciones/training/terminar/', {
+      await apiClient('/evaluaciones/training/terminar/', {
         method: 'POST',
-        body: JSON.stringify({
-          id_intento: trainingId
-        })
+        body: JSON.stringify({ id_intento: trainingId })
       });
+      const t = await AsyncStorage.getItem('TOTALPREGS');
+      const c = await AsyncStorage.getItem('TOTALPREGSCORRECTAS');
+      setFinalStorage({ t: t || 0, c: c || 0 });
+      setShowResults(true);
+    } catch (error) { Alert.alert('Error', 'Error al finalizar.'); }
+    finally { setIsSubmitting(false); }
+  };
 
+  const handleVerResultados = async () => {
+    setShowResults(false);
+    setLoadingReview(true);
+    try {
+      const response = await apiClient(`/evaluaciones/training/historial/${trainingId}/`);
       const data = await response.json();
-      console.log('=== RESPUESTA POST (AL RESPONDER) 3===', JSON.stringify(data, null, 2));
-      if (response.ok || data.status === 'success' || data.statusCode === 200) {
-        router.push({
-          pathname: '/training-results',
-          params: { trainingId: trainingId, tiempoTomado: segundosTranscurridos }
-        });
+      const detail = data.data || data;
+
+      if (detail && detail.preguntas) {
+        setReviewData(detail.preguntas);
+        setIsReviewMode(true);
       } else {
-        Alert.alert('Error', data.message || data.error || 'No se pudo terminar el examen.');
+        Alert.alert('Aviso', 'No se pudieron cargar los detalles del examen.');
+        setShowResults(true);
       }
     } catch (error) {
-      console.error('Error al terminar:', error);
-      Alert.alert('Error', 'Fallo de conexión al terminar el examen.');
+      console.error("Error cargando revisión:", error);
+      Alert.alert('Error', 'Fallo al obtener los resultados detallados.');
+      setShowResults(true);
     } finally {
-      setIsSubmitting(false);
+      setLoadingReview(false);
     }
   };
 
-  if (isLoading) {
+  const formatearTiempo = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+  if (loadingReview) return (
+    <View style={[globalStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <ActivityIndicator size="large" color="#9D489E" />
+      <Text style={{ marginTop: 15, color: '#5F7282', fontWeight: 'bold' }}>PREPARANDO RESULTADOS...</Text>
+    </View>
+  );
+
+  if (isReviewMode) {
     return (
-      <View style={[globalStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#8A2BE2" />
-        <Text style={{ marginTop: 10 }}>Cargando pregunta...</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+        <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            <Ionicons name="menu" size={35} color="#9D489E" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/dashboard')}>
+             <Ionicons name="person-circle-outline" size={40} color="#9D489E" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+          <View style={{ padding: 25 }}>
+            <Text style={[globalStyles.headerText, { textAlign: 'left', marginBottom: 20, fontSize: 22 }]}>
+              REVISIÓN DEL EXAMEN
+            </Text>
+
+            {reviewData.map((preg, index) => (
+              <View key={preg.id_pregunta || index} style={{ marginBottom: 35 }}>
+                <Text style={{ fontWeight: 'bold', color: '#9D489E', fontSize: 16, marginBottom: 10 }}>
+                  PREGUNTA {preg.orden || index + 1}
+                </Text>
+                <Text style={[globalStyles.questionText, { fontSize: 18, lineHeight: 24, marginBottom: 20 }]}>
+                  {preg.enunciado}
+                </Text>
+
+                {preg.alternativas && preg.alternativas.map((opcion) => {
+                  let bgColor = '#F0F2F3';
+                  let txtColor = '#5F7282';
+
+                  if (opcion.es_correcta) {
+                    bgColor = '#00C9A7';
+                    txtColor = '#FFF';
+                  } else if (opcion.seleccionada) {
+                    bgColor = '#FF3B30';
+                    txtColor = '#FFF';
+                  }
+
+                  return (
+                    <View key={opcion.id_alternativa_intento} style={[globalStyles.optionButton, { backgroundColor: bgColor, marginBottom: 12, padding: 18, borderRadius: 12 }]}>
+                      <Text style={{ color: txtColor, fontWeight: '600' }}>
+                        {opcion.identificador_letra ? `${opcion.identificador_letra.toUpperCase()}) ` : ''}{opcion.contenido}
+                      </Text>
+                    </View>
+                  );
+                })}
+
+                <View style={{ marginTop: 15, padding: 20, backgroundColor: '#F8F9FA', borderRadius: 15, borderWidth: 2, borderColor: preg.es_correcta ? '#00C9A7' : '#FF3B30' }}>
+                  <Text style={{ fontWeight: 'bold', color: preg.es_correcta ? '#00C9A7' : '#FF3B30', marginBottom: 8, fontSize: 16 }}>
+                    {preg.es_correcta ? '¡RESPONDIÓ CORRECTAMENTE!' : 'RESPONDIÓ INCORRECTAMENTE'}
+                  </Text>
+                  <Text style={{ color: '#5F7282', lineHeight: 20 }}>
+                    {preg.justificacion || preg.feedback?.justificacion || 'Sin explicación detallada.'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[globalStyles.primaryButton, { marginTop: 20 }]}
+              onPress={() => router.replace('/training-setup')}
+            >
+              <Text style={globalStyles.primaryButtonText}>VOLVER AL INICIO</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
+        <BottomNavbar />
+      </SafeAreaView>
     );
   }
 
+  if (isLoading) return (
+    <View style={[globalStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <ActivityIndicator size="large" color="#9D489E" />
+      <Text style={{ marginTop: 15, color: '#5F7282', fontWeight: 'bold' }}>CARGANDO...</Text>
+    </View>
+  );
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#FFF' }}>
-      <View style={{ padding: 20 }}>
-        <Text style={globalStyles.timerText}>
-          TIEMPO TRANSCURRIDO: {formatearTiempo(segundosTranscurridos)}
-        </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+      <View style={[globalStyles.headerContainer, { paddingHorizontal: 20 }]}>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <Ionicons name="menu" size={35} color="#9D489E" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('/dashboard')}>
+           <Ionicons name="person-circle-outline" size={40} color="#9D489E" />
+        </TouchableOpacity>
+      </View>
 
-        {preguntas.length === 0 ? (
-          <View style={{ marginTop: 40, alignItems: 'center' }}>
-            <Text style={{ textAlign: 'center', fontSize: 18, marginBottom: 20, color: '#555' }}>
-              Has respondido todas las preguntas.
-            </Text>
-            <TouchableOpacity
-              style={[globalStyles.primaryButton, { width: '100%' }, isSubmitting && { opacity: 0.7 }]}
-              onPress={handleTerminar}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <ActivityIndicator color="#FFF" /> : <Text style={globalStyles.primaryButtonText}>TERMINAR EXAMEN</Text>}
-            </TouchableOpacity>
-          </View>
-        ) : (
-          preguntas.map((item, index) => {
-            const laPregunta = item.pregunta;
-            const pId = laPregunta.id_pregunta;
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+        <View style={{ padding: 25 }}>
+          <Text style={[globalStyles.timerText, { marginBottom: 20, color: '#5F7282', fontWeight: 'bold' }]}>
+            TIEMPO: {formatearTiempo(segundosTranscurridos)}
+          </Text>
 
+          {preguntas.map((item, index) => {
+            const p = item.pregunta;
             return (
-              <View key={pId || index} style={{ marginBottom: 30 }}>
-                <Text style={{ fontWeight: 'bold', marginTop: 10, color: '#8A2BE2' }}>
-                  PREGUNTA {item.orden || currentPage}
+              <View key={p.id_pregunta || index}>
+                <Text style={{ fontWeight: 'bold', color: '#9D489E', fontSize: 16, marginBottom: 10 }}>
+                  PREGUNTA {currentPage} DE {totalPreguntas}
                 </Text>
+                <Text style={[globalStyles.questionText, { fontSize: 18, lineHeight: 24, marginBottom: 25 }]}>{p.enunciado}</Text>
 
-                <Text style={globalStyles.questionText}>
-                  {laPregunta.enunciado}
-                </Text>
-
-                {(laPregunta.alternativas || []).map((opcion) => {
+                {p.alternativas.map((opcion) => {
                   const oId = opcion.id_alternativa_intento;
-                  const isSelected = respuestas[pId] === oId;
+                  const isSelected = respuestas[p.id_pregunta] === oId;
+                  let bgColor = '#F0F2F3';
+                  let txtColor = '#5F7282';
+
                   if (feedback) {
                     if (isSelected) {
-                      backgroundColor = feedback.esCorrecta ? '#00C9A7' : '#FF3B30';
-                      textColor = '#FFF';
+                      bgColor = feedback.esCorrecta ? '#00C9A7' : '#FF3B30';
+                      txtColor = '#FFF';
                     } else if (String(oId) === String(feedback.correctaId)) {
-                      backgroundColor = '#00C9A7';
-                      textColor = '#FFF';
+                      bgColor = '#00C9A7';
+                      txtColor = '#FFF';
                     }
-                  }
-
-                  // Lógica de colores FINAL
-                  let backgroundColor = '#EEE'; // Gris por defecto
-                  let textColor = '#333';
-
-                  if (feedback) {
-                    if (isSelected) {
-                      // 1. La que el usuario tocó (Verde si acertó, Rojo si falló)
-                      backgroundColor = feedback.esCorrecta ? '#00C9A7' : '#FF3B30';
-                      textColor = '#FFF';
-                    } else if (feedback.correctaId && String(oId) === String(feedback.correctaId)) {
-                      // 2. La que NO tocó, pero era la correcta (Se muestra en Verde)
-                      backgroundColor = '#00C9A7';
-                      textColor = '#FFF';
-                    }
-                  } else if (isSelected) {
-                    // 3. Mientras carga la petición
-                    backgroundColor = '#CCC';
                   }
 
                   return (
                     <TouchableOpacity
                       key={oId}
-                      style={[
-                        globalStyles.optionButton,
-                        { backgroundColor: backgroundColor },
-                        // Atenuamos las opciones que no son ni la seleccionada ni la correcta
-                        (feedback || isAnswering) && { opacity: (!isSelected && String(oId) !== String(feedback?.correctaId)) ? 0.6 : 1 }
-                      ]}
-                      onPress={() => handleSelectOption(pId, oId)}
+                      style={[globalStyles.optionButton, { backgroundColor: bgColor, marginBottom: 12, padding: 18, borderRadius: 12 }]}
+                      onPress={() => handleSelectOption(p.id_pregunta, oId)}
                       disabled={!!feedback || isAnswering}
                     >
-                      {isAnswering && isSelected ? (
-                        <ActivityIndicator color="#333" />
-                      ) : (
-                        <Text style={{ color: textColor, fontWeight: isSelected || (feedback && String(oId) === String(feedback.correctaId)) ? 'bold' : 'normal' }}>
-                          {opcion.identificador_letra}) {opcion.contenido}
-                        </Text>
-                      )}
+                      <Text style={{ color: txtColor, fontWeight: '600' }}>
+                        {opcion.identificador_letra.toUpperCase()}) {opcion.contenido}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
 
-                {/* Mostrar explicación si ya se respondió (VERSIÓN VIEJA Y BONITA) */}
                 {feedback && (
-                  <View style={{ marginTop: 20, padding: 15, backgroundColor: '#F9F9F9', borderRadius: 8, borderWidth: 1, borderColor: feedback.esCorrecta ? '#00C9A7' : '#FF3B30' }}>
-                    <Text style={{ fontWeight: 'bold', color: feedback.esCorrecta ? '#00C9A7' : '#FF3B30', marginBottom: 5 }}>
-                      {feedback.esCorrecta ? '¡RESPUESTA CORRECTA!' : 'RESPUESTA INCORRECTA'}
+                  <View style={{ marginTop: 25, padding: 20, backgroundColor: '#F8F9FA', borderRadius: 15, borderWidth: 2, borderColor: feedback.esCorrecta ? '#00C9A7' : '#FF3B30' }}>
+                    <Text style={{ fontWeight: 'bold', color: feedback.esCorrecta ? '#00C9A7' : '#FF3B30', marginBottom: 8, fontSize: 16 }}>
+                      {feedback.esCorrecta ? '¡CORRECTO!' : 'RESPUESTA INCORRECTA'}
                     </Text>
-                    <Text style={{ fontStyle: 'italic', color: '#555' }}>{feedback.explicacion}</Text>
+                    <Text style={{ color: '#5F7282', lineHeight: 20 }}>{feedback.explicacion}</Text>
                   </View>
                 )}
-
               </View>
             );
-          })
-        )}
+          })}
 
-        {preguntas.length > 0 && hasNextPage && feedback && (
-          <TouchableOpacity
-            style={[globalStyles.primaryButton, { marginBottom: 40, backgroundColor: '#8A2BE2' }]}
-            onPress={handleSiguientePagina}
-          >
-            <Text style={globalStyles.primaryButtonText}>SIGUIENTE PREGUNTA</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </ScrollView>
+          {feedback && (
+            <View style={{ marginTop: 30 }}>
+              {hasNextPage ? (
+                <TouchableOpacity style={globalStyles.primaryButton} onPress={() => setCurrentPage(prev => prev + 1)}>
+                  <Text style={globalStyles.primaryButtonText} numberOfLines={1} adjustsFontSizeToFit>
+                    SIGUIENTE PREGUNTA
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[globalStyles.primaryButton, { backgroundColor: '#9D489E' }]} onPress={handleTerminar} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={globalStyles.primaryButtonText} numberOfLines={1} adjustsFontSizeToFit>
+                      FINALIZAR ENTRENAMIENTO
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <Modal visible={showResults} transparent animationType="fade">
+        <View style={globalStyles.modalOverlay}>
+          <View style={[globalStyles.modalContent, { paddingHorizontal: 20, paddingBottom: 30 }]}>
+
+            <Image
+              source={require('../assets/images/Recurso 11.png')}
+              style={{ width: 110, height: 110, resizeMode: 'contain', marginBottom: 15 }}
+            />
+
+            <Text style={{ color: '#8A97A0', fontSize: 14, fontWeight: '500', letterSpacing: 0.5 }}>
+              EXAMEN TRAINING
+            </Text>
+
+            <Text style={[globalStyles.modalTitle, { fontSize: 24, marginTop: 2, marginBottom: 15, color: '#5F7282' }]}>
+              ¡TERMINADO!
+            </Text>
+
+            <Text style={{ color: '#8A97A0', fontSize: 14, marginBottom: 30, textAlign: 'center' }}>
+              Tienes un resultado de: <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#5F7282' }}>{finalStorage.c}/{finalStorage.t}</Text>
+            </Text>
+
+            <TouchableOpacity
+              style={[globalStyles.primaryButton, { width: '85%', marginBottom: 15, marginTop: 0, minHeight: 45, borderRadius: 8 }]}
+              onPress={handleVerResultados}
+            >
+              <Text style={[globalStyles.primaryButtonText, { fontSize: 14, fontWeight: '600' }]}>VER RESULTADOS</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[globalStyles.primaryButton, { width: '85%', marginTop: 0, minHeight: 45, borderRadius: 8 }]}
+              onPress={() => { setShowResults(false); router.replace('/training-setup'); }}
+            >
+              <Text style={[globalStyles.primaryButtonText, { fontSize: 14, fontWeight: '600' }]}>CONTINUAR</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
+      <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <BottomNavbar />
+    </SafeAreaView>
   );
 }

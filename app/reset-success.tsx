@@ -10,7 +10,7 @@ export default function ResetSuccess() {
       <Text style={globalStyles.headerText}>¡FINALIZADO!</Text>
       <Text style={globalStyles.subHeaderText}>Tu contraseña ha sido restablecida exitosamente</Text>
 
-      <TouchableOpacity style={globalStyles.primaryButton} onPress={() => router.push('/login')}>
+      <TouchableOpacity style={globalStyles.primaryButton} onPress={() => router.replace('/login')}>
         <Text style={globalStyles.primaryButtonText}>CONTINUAR</Text>
       </TouchableOpacity>
     </View>

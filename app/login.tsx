@@ -14,12 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
+import {useAuth} from "@/utils/authContext";
 
 export default function Login() {
-  const router = useRouter();
-
-  // Estados
+  const { logIn } = useAuth(); // <-- agrega esto
   const [username, setUsername] = useState('');
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -45,9 +45,7 @@ export default function Login() {
       const data = await response.json();
 
       if (data.status === 'success' && data.statusCode === 200) {
-        await SecureStore.setItemAsync('userToken', data.data.token);
-        await SecureStore.setItemAsync('userData', JSON.stringify(data.data.usuario));
-        router.replace('/dashboard');
+        await logIn(data.data.token, data.data.usuario);
       } else {
         Alert.alert('Error', data.message || 'Credenciales incorrectas.');
       }
@@ -63,12 +61,11 @@ export default function Login() {
     <KeyboardAwareScrollView
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
-      enableOnAndroid={true} // Obligatorio para que Expo/Android lo reconozca
-      extraScrollHeight={20} // Da un pequeño margen para que el input no quede pegado al teclado
-      bounces={false} // Evita el efecto rebote molesto en iOS
+      enableOnAndroid={true}
+      extraScrollHeight={20}
+      bounces={false}
     >
       <View style={globalStyles.container}>
-        {/* Logo */}
         <Image
           source={require('../assets/images/logo.png')}
           style={globalStyles.logo}
@@ -77,7 +74,6 @@ export default function Login() {
 
         <Text style={globalStyles.headerText}>INICIAR SESIÓN</Text>
 
-        {/* Input Usuario */}
         <Text style={globalStyles.label}>USUARIO</Text>
         <View style={globalStyles.inputContainer}>
           <TextInput
@@ -90,7 +86,6 @@ export default function Login() {
           />
         </View>
 
-        {/* Input Contraseña */}
         <Text style={globalStyles.label}>CONTRASEÑA</Text>
         <View style={globalStyles.inputContainer}>
           <TextInput
@@ -112,7 +107,6 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
-        {/* Botón Ingresar */}
         <TouchableOpacity
           style={[globalStyles.primaryButton, isLoading && { opacity: 0.7 }]}
           onPress={handleLogin}

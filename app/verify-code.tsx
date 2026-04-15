@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // <-- Importación
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
 
@@ -80,7 +80,6 @@ export default function VerifyCode() {
           Enviamos un código de verificación a tu correo
         </Text>
 
-        {/* Cambiamos Pressable por View. El TextInput ahora cubre toda esta área */}
         <View style={globalStyles.otpContainer}>
           {renderOtpBoxes()}
 
@@ -91,7 +90,6 @@ export default function VerifyCode() {
             maxLength={6}
             keyboardType="number-pad"
             autoFocus={true}
-            // Este es el truco: Ocupa el 100% del contenedor padre y es invisible
             style={{
               position: 'absolute',
               width: '100%',

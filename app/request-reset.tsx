@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // <-- Importación añadida
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
 
@@ -34,7 +34,6 @@ export default function RequestReset() {
       const data = await response.json();
 
       if (response.ok || data.status === 'success' || data.statusCode === 200) {
-        // Navegamos a la pantalla de recuperación pasándole el correo si es necesario
         router.push('/recover-password');
       } else {
         const errorMessage = data.error || data.message || data.detail || 'Ocurrió un error en el servidor.';
@@ -57,7 +56,6 @@ export default function RequestReset() {
       bounces={false}
     >
       <View style={globalStyles.container}>
-        {/* Botón ATRÁS arriba a la izquierda */}
         <TouchableOpacity
           style={globalStyles.backButton}
           onPress={() => router.back()}
@@ -74,7 +72,6 @@ export default function RequestReset() {
 
         <Text style={globalStyles.label}>CORREO ELECTRÓNICO</Text>
 
-        {/* Usamos inputContainer para que tenga el fondo gris y padding correcto */}
         <View style={globalStyles.inputContainer}>
           <TextInput
             style={globalStyles.input}

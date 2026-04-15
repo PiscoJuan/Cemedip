@@ -20,7 +20,7 @@ export default function TrainingResults() {
       <Text>Por funcional respiratorio</Text>
       <Text style={{ fontStyle: 'italic', marginTop: 5 }}>La EPOC se define por un criterio funcional, no anatómico ni solo clínico ni por imágenes. El diagnóstico se confirma mediante espirometría.</Text>
 
-      <TouchableOpacity style={globalStyles.primaryButton} onPress={() => router.push('/dashboard')}>
+      <TouchableOpacity style={globalStyles.primaryButton} onPress={() => router.replace('/dashboard')}>
         <Text style={globalStyles.primaryButtonText}>SIGUIENTE</Text>
       </TouchableOpacity>
     </ScrollView>

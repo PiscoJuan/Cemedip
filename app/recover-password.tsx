@@ -2,19 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // <-- Importación añadida
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { globalStyles } from '../constants/globalStyles';
 
 export default function RecoverPassword() {
   const router = useRouter();
 
-  // Estados
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Validaciones en tiempo real
   const validations = {
     hasMinLength: newPassword.length >= 8,
     hasUpperCase: /[A-Z]/.test(newPassword),
@@ -24,19 +22,16 @@ export default function RecoverPassword() {
   const getValidationColor = (isValid: boolean) => (isValid ? '#4FB0AB' : '#FF4D4D');
 
   const handleContinue = () => {
-    // 1. Validar que coincidan
     if (newPassword !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden.');
       return;
     }
 
-    // 2. Validar requisitos
     if (!validations.hasMinLength || !validations.hasUpperCase || !validations.hasNumberOrSymbol) {
       Alert.alert('Error', 'La contraseña no cumple con los requisitos.');
       return;
     }
 
-    // 3. LOGICA ORIGINAL: Navegar pasando el parámetro
     router.push({
       pathname: '/verify-code',
       params: { passwordToSave: newPassword }
@@ -56,10 +51,8 @@ export default function RecoverPassword() {
       extraScrollHeight={20}
       bounces={false}
     >
-      {/* Aplicamos tu contenedor y el paddingTop al View interno */}
       <View style={[globalStyles.container, { paddingTop: 60 }]}>
 
-        {/* Botón ATRÁS */}
         <TouchableOpacity style={globalStyles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#5F7282" />
           <Text style={globalStyles.backText}>ATRÁS</Text>
@@ -70,7 +63,6 @@ export default function RecoverPassword() {
           Por favor, escribe tu nueva contraseña
         </Text>
 
-        {/* Input Contraseña Nueva */}
         <Text style={globalStyles.label}>CONTRASEÑA NUEVA</Text>
         <View style={globalStyles.inputContainerBorder}>
           <TextInput
@@ -86,7 +78,6 @@ export default function RecoverPassword() {
           </TouchableOpacity>
         </View>
 
-        {/* Input Confirmar Contraseña */}
         <Text style={globalStyles.label}>INGRESE CONTRASEÑA DE NUEVO</Text>
         <View style={globalStyles.inputContainerBorder}>
           <TextInput
@@ -102,7 +93,6 @@ export default function RecoverPassword() {
           </TouchableOpacity>
         </View>
 
-        {/* Lista de Requisitos Dinámica */}
         <View style={globalStyles.requirementsContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
             <Ionicons name="shield-checkmark-outline" size={18} color="#5F7282" />
