@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/Recurso 4.png",
     "splash": {
-      "image": "./assets/images/Recurso 3.png",
+      "image": "./assets/images/Recurso 3v2.png",
       "resizeMode": "contain",
       "backgroundColor": "#9C489E"
     },
@@ -14,18 +14,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hangaroa.cemedip",
+      "buildNumber": "1"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Cemedip"
+      "package": "com.hangaroa.cemedip",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
@@ -37,13 +34,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/Recurso 3v2.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#9C489E"
         }
       ],
       "expo-secure-store",

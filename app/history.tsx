@@ -64,30 +64,34 @@ export default function HistoryScreen() {
   };
 
   const handleVerMas = async (id) => {
-    if (!id) return;
-    setLoadingDetail(true);
-    try {
-      const response = await apiClient(`/evaluaciones/training/historial/${id}/`);
-      const data = await response.json();
+  if (!id) return;
+  setLoadingDetail(true);
+  try {
+    const response = await apiClient(`/evaluaciones/training/historial/${id}/`);
+    const data = await response.json();
+    const detail = data.data || data;
 
-      setSelectedDetail(data.data || data);
-      setModalVisible(true);
-    } catch (error) {
-      console.error("Error detalle:", error);
-      Alert.alert("Error", "No se pudo obtener el detalle del examen.");
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
+    setSelectedDetail(detail);
+    setModalVisible(true);
+  } catch (error) {
+    console.error("Error detalle:", error);
+    Alert.alert("Error", "No se pudo obtener el detalle.");
+  } finally {
+    setLoadingDetail(false);
+  }
+};
 
   const formatDate = (dateString) => {
-    if (!dateString) return '00/00/0000';
+    if (!dateString) return '00/00/0000 00:00';
     try {
       const date = new Date(dateString);
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
     } catch (error) {
       return dateString;
     }
@@ -104,7 +108,7 @@ export default function HistoryScreen() {
       </View>
 
       <View style={globalStyles.historyInfoContainer}>
-        <Text style={globalStyles.historyTitleText}>EXAMEN DE PRÁCTICA</Text>
+        <Text style={globalStyles.historyTitleText}>TRAINING</Text>
         <Text style={globalStyles.historySubTitleText}>
           {item.especialidad_nombre || 'ESPECIALIDAD'}, {item.tema_nombre || 'TEMA'}
         </Text>
@@ -130,7 +134,7 @@ export default function HistoryScreen() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={{ padding: 25 }}>
             <Text style={[globalStyles.headerText, { textAlign: 'left', marginBottom: 5, fontSize: 22 }]}>
-              REVISIÓN DEL EXAMEN
+              REVISIÓN DEL TRAINING
             </Text>
             <Text style={{ color: '#A0AAB2', marginBottom: 20, fontWeight: 'bold' }}>
               {selectedDetail.intento?.porcentaje}% OBTENIDO
@@ -148,20 +152,37 @@ export default function HistoryScreen() {
                 {preg.alternativas && preg.alternativas.map((opcion) => {
                   let bgColor = '#F0F2F3';
                   let txtColor = '#5F7282';
+                  let separatorColor = '#D1D5D8';
 
-                  if (opcion.es_correcta) {
+                  if (opcion.es_correcta === true) {
                     bgColor = '#00C9A7';
                     txtColor = '#FFF';
-                  } else if (opcion.seleccionada) {
+                    separatorColor = 'rgba(255,255,255,0.3)';
+                  }
+                  else if (opcion.es_elegida === true && opcion.es_correcta === false) {
                     bgColor = '#FF3B30';
                     txtColor = '#FFF';
+                    separatorColor = 'rgba(255,255,255,0.3)';
                   }
 
                   return (
-                    <View key={opcion.id_alternativa_intento} style={[globalStyles.optionButton, { backgroundColor: bgColor, marginBottom: 12, padding: 18, borderRadius: 12 }]}>
-                      <Text style={{ color: txtColor, fontWeight: '600' }}>
-                        {opcion.identificador_letra ? `${opcion.identificador_letra.toUpperCase()}) ` : ''}{opcion.contenido}
-                      </Text>
+                    <View
+                      key={opcion.id_alternativa_intento}
+                      style={[globalStyles.optionCard, { backgroundColor: bgColor, marginBottom: 10 }]}
+                    >
+                      <View style={globalStyles.literalContainer}>
+                        <Text style={[globalStyles.optionText, { color: txtColor, fontWeight: 'bold' }]}>
+                          {opcion.identificador_letra ? opcion.identificador_letra.toUpperCase() : '-'}
+                        </Text>
+                      </View>
+
+                      <View style={[globalStyles.verticalSeparator, { backgroundColor: separatorColor }]} />
+
+                      <View style={globalStyles.contentContainer}>
+                        <Text style={[globalStyles.optionText, { color: txtColor }]}>
+                          {opcion.contenido}
+                        </Text>
+                      </View>
                     </View>
                   );
                 })}
@@ -296,7 +317,7 @@ export default function HistoryScreen() {
                 setIsReviewMode(true);
               }}
             >
-              <Text style={globalStyles.primaryButtonText}>VER EXAMEN COMPLETO</Text>
+              <Text style={globalStyles.primaryButtonText}>VER TRAINING COMPLETO</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

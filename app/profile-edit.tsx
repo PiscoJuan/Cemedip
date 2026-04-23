@@ -89,6 +89,11 @@ export default function ProfileEditScreen() {
   };
 
   const handleSave = async () => {
+    if (!form.correo_personal || !form.telefono_celular || !form.direccion) {
+      Alert.alert("Campos incompletos", "Por favor, completa los campos obligatorios (Correo, Teléfono y Dirección).");
+      return;
+    }
+
     setSaving(true);
     try {
       const formData = new FormData();
@@ -114,12 +119,21 @@ export default function ProfileEditScreen() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok || result.status === 'success') {
         Alert.alert("Éxito", "Perfil actualizado correctamente.");
         router.back();
+      } else {
+        const errorMsg = result.message || result.error || "Ocurrió un error inesperado al guardar.";
+        Alert.alert("No se pudo guardar", errorMsg);
       }
-    } catch (e) { Alert.alert("Error", "Error al guardar"); }
-    finally { setSaving(false); }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error de conexión", "Asegúrate de estar conectado a internet.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <View style={{flex:1, justifyContent:'center'}}><ActivityIndicator size="large" color="#9D489E" /></View>;
@@ -130,10 +144,6 @@ export default function ProfileEditScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="chevron-back" size={30} color="#5F7282" />
           <Text style={{ color: '#5F7282', fontWeight: 'bold', fontSize: 16 }}>ATRÁS</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#9D489E' }}>EDITAR</Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
-           <Text style={{ color: '#9D489E', fontWeight: 'bold', fontSize: 16 }}>LISTO</Text>
         </TouchableOpacity>
       </View>
 
@@ -158,7 +168,6 @@ export default function ProfileEditScreen() {
 
         <InputField label="CORREO PERSONAL" value={form.correo_personal} onChange={(t) => setForm({...form, correo_personal: t})} />
 
-        {/* AJUSTE: SOLO NÚMEROS Y MÁXIMO 10 DÍGITOS */}
         <InputField
           label="TELÉFONO CELULAR"
           value={form.telefono_celular}

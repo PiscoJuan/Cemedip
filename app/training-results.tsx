@@ -7,7 +7,7 @@ export default function TrainingResults() {
 
   return (
     <ScrollView style={{ padding: 20, backgroundColor: '#FFF' }}>
-      <Text style={globalStyles.headerText}>RESULTADOS EXAMEN TRAINING</Text>
+      <Text style={globalStyles.headerText}>RESULTADOS TRAINING</Text>
 
       <Text style={globalStyles.questionText}>PREGUNTA 3</Text>
       <Text style={{ marginBottom: 10 }}>En base a qué parámetro define usted la enfermedad pulmonar obstructiva crónica?</Text>

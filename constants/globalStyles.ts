@@ -22,7 +22,7 @@ export const globalStyles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    width: 120, // Un poco más grande para que luzca
+    width: 120,
     height: 120,
     alignSelf: 'center',
     marginBottom: 40,
@@ -48,7 +48,7 @@ export const globalStyles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0', // Gris muy claro del diseño
+    backgroundColor: '#F0F0F0',
     borderRadius: 12,
     paddingHorizontal: 15,
     marginBottom: 25,
@@ -96,8 +96,9 @@ primaryButton: {
   },
   questionText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 15,
+    lineHeight: 22,
   },
   optionButton: {
     backgroundColor: '#EEE',
@@ -106,10 +107,10 @@ primaryButton: {
     marginBottom: 10,
   },
   optionButtonSelected: {
-    backgroundColor: '#00C9A7', // Teal color for selection
+    backgroundColor: '#00C9A7',
   },
   correctOption: {
-    backgroundColor: '#FF0055', // Red/Pink for correct/incorrect highlights based on design
+    backgroundColor: '#FF0055',
   },
   backButton: {
     flexDirection: 'row',
@@ -129,18 +130,18 @@ primaryButton: {
     color: '#5F7282',
     textAlign: 'center',
     marginBottom: 40,
-    marginTop: -40, // Para acercarlo al título
+    marginTop: -40,
   },
   inputContainerBorder: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#9D489E', // Borde morado de la imagen
+    borderColor: '#9D489E',
     borderRadius: 15,
     paddingHorizontal: 15,
     marginBottom: 25,
-    height: 65, // Un poco más altos como en la imagen
+    height: 65,
   },
   requirementsContainer: {
     marginTop: 10,
@@ -154,7 +155,7 @@ primaryButton: {
   },
   requirementText: {
     fontSize: 14,
-    color: '#00A19D', // El color verde/turquesa de los puntos
+    color: '#00A19D',
     marginBottom: 5,
     marginLeft: 10,
   },
@@ -415,7 +416,6 @@ primaryButton: {
     fontWeight: 'bold',
   },
 
-  // --- ESTILOS PARA EL MODAL DE RESULTADOS (DETALLE) ---
   resultScoreCard: {
     backgroundColor: '#F0F2F3',
     width: '100%',
@@ -437,15 +437,19 @@ primaryButton: {
   },
   resultBadgeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
     width: '100%',
   },
   resultBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 12,
+    minWidth: '45%',
   },
   resultBadgeText: {
     fontSize: 12,
@@ -474,7 +478,6 @@ primaryButton: {
     marginRight: 10,
   },
 
-  // --- UTILIDADES EXTRA ---
   searchSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,4 +495,145 @@ primaryButton: {
     zIndex: 999,
   },
 
+  actionCard: {
+    backgroundColor: '#9D489E',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    marginBottom: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  actionCardCircle: {
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionCardIcon: {
+    width: 30,
+    height: 30,
+  },
+  actionCardTitle: {
+    flex: 1,
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 15,
+  },
+  progressItemCard: {
+    backgroundColor: '#F2F2F2',
+    borderRadius: 10,
+    flexDirection: 'row',
+    height: 85,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  progressSideBar: {
+    width: 6,
+    backgroundColor: '#9D489E',
+  },
+  progressContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+  },
+  progressIconCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressInfoContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  progressMainText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5F7282',
+  },
+  progressSecondaryText: {
+    fontSize: 10,
+    color: '#5F7282',
+    textTransform: 'uppercase',
+  },
+  progressDateText: {
+    fontSize: 10,
+    color: '#A0AAB2',
+  },
+  progressPercentageText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#5F7282',
+  },
+  gifModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gifContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '90%',
+  },
+  gifImageGrande: {
+    width: 320,
+    height: 320,
+  },
+  gifFeedbackTextFlotante: {
+    marginTop: 20,
+    fontSize: 35,
+    fontWeight: '900',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
+  },
+
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F2F3',
+    borderRadius: 12,
+    marginBottom: 12,
+    minHeight: 60,
+    paddingHorizontal: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  literalContainer: {
+    width: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verticalSeparator: {
+    width: 1,
+    height: '60%',
+    marginHorizontal: 5,
+  },
+  contentContainer: {
+    flex: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  optionText: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#5F7282',
+  },
 });

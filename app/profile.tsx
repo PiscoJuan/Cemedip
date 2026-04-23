@@ -12,7 +12,6 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Esta función se ejecutará CADA VEZ que entres a la pantalla
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
@@ -21,7 +20,6 @@ export default function ProfileScreen() {
 
   const fetchProfile = async () => {
     try {
-      // Opcional: solo mostrar loading la primera vez para que no parpadee al volver
       if (!profile) setLoading(true);
 
       const response = await apiClient('/seguridad/perfil/');
@@ -38,7 +36,6 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
-      {/* ... Resto del código igual ... */}
       <View style={[globalStyles.headerContainer, { paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 15 }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="chevron-back" size={30} color="#5F7282" />
@@ -67,8 +64,8 @@ export default function ProfileScreen() {
           <Text style={{ marginTop: 20, fontSize: 18, fontWeight: 'bold', color: '#5F7282', letterSpacing: 1 }}>INFORMACIÓN PERSONAL</Text>
         </View>
 
-        <InfoBlock icon="person-circle-outline" label="NOMBRE" value={profile?.nombres} />
-        <InfoBlock icon="person-circle-outline" label="APELLIDO" value={profile?.apellidos} />
+        <InfoBlock icon="person-circle-outline" label="NOMBRES" value={profile?.nombres} />
+        <InfoBlock icon="person-circle-outline" label="APELLIDOS" value={profile?.apellidos} />
         <InfoBlock icon="calendar-outline" label="FECHA DE NACIMIENTO" value={profile?.fecha_nacimiento} />
         <InfoBlock icon="male-female-outline" label="GÉNERO" value={profile?.genero} />
         <InfoBlock icon="card-outline" label="IDENTIFICACIÓN" value={profile?.identificacion} />
@@ -77,9 +74,9 @@ export default function ProfileScreen() {
         <InfoBlock icon="call-outline" label="TELÉFONO CELULAR" value={profile?.telefono_celular} />
         <InfoBlock icon="location-outline" label="DIRECCIÓN" value={profile?.direccion} />
 
-        <TouchableOpacity style={globalStyles.primaryButton} onPress={() => Alert.alert("Próximamente", "Flujo de cambio de contraseña")}>
-          <Text style={globalStyles.primaryButtonText}>CAMBIAR CONTRASEÑA</Text>
-        </TouchableOpacity>
+        {/*<TouchableOpacity style={globalStyles.primaryButton} onPress={() => Alert.alert("Próximamente", "Flujo de cambio de contraseña")}>*/}
+        {/*  <Text style={globalStyles.primaryButtonText}>CAMBIAR CONTRASEÑA</Text>*/}
+        {/*</TouchableOpacity>*/}
 
         <TouchableOpacity style={[globalStyles.primaryButton, { backgroundColor: '#A5559F' }]} onPress={() => Alert.alert("Atención", "¿Seguro que deseas eliminar tu cuenta?")}>
           <Text style={globalStyles.primaryButtonText}>ELIMINAR CUENTA</Text>
