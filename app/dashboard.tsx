@@ -30,9 +30,7 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       loadDashboardData();
-
-      return () => {
-      };
+      return () => {};
     }, [])
   );
 
@@ -63,7 +61,6 @@ export default function Dashboard() {
       const year = date.getFullYear();
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-
       return `${day}/${month}/${year} ${hours}:${minutes}`;
     } catch (error) {
       return dateString;
@@ -77,43 +74,41 @@ export default function Dashboard() {
   };
 
   const renderProgressItem = ({ item }) => (
-  <TouchableOpacity
-    style={globalStyles.progressItemCard}
-    onPress={() => router.push({
-      pathname: '/training-exam',
-      params: {
-        trainingId: item.id_intento,
-        totalLimit: String(item.total_preguntas || item.numero_preguntas),
-        startPage: String(item.indice_pregunta_actual || 1)
-      }
-    })}
-  >
-    <View style={globalStyles.progressSideBar} />
-    <View style={globalStyles.progressContent}>
-      <View style={globalStyles.progressIconCircle}>
-        <Image
-          source={require('../assets/images/Recurso 11.png')}
-          style={{ width: 25, height: 25, opacity: 0.5 }}
-          resizeMode="contain"
-        />
-      </View>
-      <View style={globalStyles.progressInfoContainer}>
-        <Text style={globalStyles.progressMainText}>TRAINING</Text>
-
-        <Text style={globalStyles.progressSecondaryText}>
-          {item.especialidades && item.especialidades.length > 0
-            ? item.especialidades.map(esp => esp.nombre).join(', ')
-            : 'GENERAL'}
+    <TouchableOpacity
+      style={globalStyles.progressItemCard}
+      onPress={() => router.push({
+        pathname: '/training-exam',
+        params: {
+          trainingId: item.id_intento,
+          totalLimit: String(item.total_preguntas || item.numero_preguntas),
+          startPage: String(item.indice_pregunta_actual || 1)
+        }
+      })}
+    >
+      <View style={globalStyles.progressSideBar} />
+      <View style={globalStyles.progressContent}>
+        <View style={globalStyles.progressIconCircle}>
+          <Image
+            source={require('../assets/images/Recurso 11.png')}
+            style={{ width: 25, height: 25, opacity: 0.5 }}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={globalStyles.progressInfoContainer}>
+          <Text style={globalStyles.progressMainText}>TRAINING</Text>
+          <Text style={globalStyles.progressSecondaryText}>
+            {item.especialidades && item.especialidades.length > 0
+              ? item.especialidades.map(esp => esp.nombre).join(', ')
+              : 'GENERAL'}
+          </Text>
+          <Text style={globalStyles.progressDateText}>{formatDate(item.fecha_creacion)}</Text>
+        </View>
+        <Text style={globalStyles.progressPercentageText}>
+          {calculatePercentage(item.indice_pregunta_actual || 0, item.total_preguntas || item.numero_preguntas)}%
         </Text>
-
-        <Text style={globalStyles.progressDateText}>{formatDate(item.fecha_creacion)}</Text>
       </View>
-      <Text style={globalStyles.progressPercentageText}>
-        {calculatePercentage(item.indice_pregunta_actual || 0, item.total_preguntas || item.numero_preguntas)}%
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }} edges={['top']}>
@@ -135,7 +130,10 @@ export default function Dashboard() {
 
         <TouchableOpacity
           style={globalStyles.actionCard}
-          onPress={() => Alert.alert("Aviso", "No hay exámenes disponibles")}
+          onPress={() => {
+            router.push('/exam-list')
+            // Alert.alert("Aviso", "No hay exámenes disponibles en este momento.");
+          }}
         >
           <View style={globalStyles.actionCardCircle}>
             <Image source={require('../assets/images/Recurso 12.png')} style={globalStyles.actionCardIcon} resizeMode="contain" />

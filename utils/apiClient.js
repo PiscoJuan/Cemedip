@@ -1,8 +1,11 @@
 // utils/apiClient.js
 import * as SecureStore from 'expo-secure-store';
 import { Platform, Alert } from 'react-native'; // Importamos Alert
+import { router } from 'expo-router';
 
-const BASE_URL = 'https://api.cemedip.net/api/cliente';
+const BASE_URL = 'https://comedip.pythonanywhere.com/api/cliente';
+//const BASE_URL = 'https://api.cemedip.net/api/cliente';
+
 
 export const apiClient = async (endpoint, options = {}) => {
   const versionData = {
@@ -63,7 +66,19 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return response;
   } catch (error) {
-    console.error(`%c !!! ERROR en ${endpoint}:`, 'color: orange', error);
+    Alert.alert(
+        "Sesión Expirada",
+        "Su sesión ha finalizado. Por favor, ingrese nuevamente.",
+        [{
+          text: "OK",
+          onPress: () => {
+            // Usamos replace para que no puedan volver atrás con el botón físico
+            // Y redirigimos a la ruta de login (ajusta el path si es distinto)
+            router.replace('/login');
+          }
+        }]
+      );
+
     throw error;
   }
 };

@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Image,
+  Platform,
+  Modal
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -33,6 +44,9 @@ export default function ProfileEditScreen() {
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [showPrivacidad, setShowPrivacidad] = useState(false);
+  const [privacidadTexto, setPrivacidadTexto] = useState('');
+
   const [form, setForm] = useState({
     nombres: '',
     apellidos: '',
@@ -44,7 +58,8 @@ export default function ProfileEditScreen() {
     fecha_nacimiento: '',
     genero: '',
     foto_perfil: null,
-    foto_perfil_url: null
+    foto_perfil_url: null,
+    acepto_terminos_condiciones: false
   });
 
   useEffect(() => { loadCurrentData(); }, []);
@@ -64,6 +79,18 @@ export default function ProfileEditScreen() {
     finally { setLoading(false); }
   };
 
+  const fetchPoliticaPrivacidad = async () => {
+    try {
+      const res = await apiClient('/politicas/privacidad/');
+      const json = await res.json();
+      if (json.status === 'success') {
+        setPrivacidadTexto(json.data.contenido_texto);
+        setShowPrivacidad(true);
+      }
+    } catch (e) {
+      Alert.alert("Error", "No se pudo cargar la política de privacidad.");
+    }
+  };
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -90,7 +117,12 @@ export default function ProfileEditScreen() {
 
   const handleSave = async () => {
     if (!form.correo_personal || !form.telefono_celular || !form.direccion) {
-      Alert.alert("Campos incompletos", "Por favor, completa los campos obligatorios (Correo, Teléfono y Dirección).");
+      Alert.alert("Campos incompletos", "Por favor, completa los campos obligatorios.");
+      return;
+    }
+
+    if (!form.acepto_terminos_condiciones) {
+      Alert.alert("Aviso", "Debes aceptar los Términos, Condiciones y Políticas de Privacidad para continuar.");
       return;
     }
 
@@ -102,6 +134,7 @@ export default function ProfileEditScreen() {
       formData.append('direccion', form.direccion);
       formData.append('fecha_nacimiento', form.fecha_nacimiento);
       formData.append('genero', form.genero);
+      formData.append('acepto_terminos_condiciones', form.acepto_terminos_condiciones.toString());
 
       if (form.foto_perfil && form.foto_perfil.startsWith('file://')) {
         const uriParts = form.foto_perfil.split('.');
@@ -222,11 +255,51 @@ export default function ProfileEditScreen() {
           ))}
         </View>
 
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}
+          onPress={() => setForm({ ...form, acepto_terminos_condiciones: !form.acepto_terminos_condiciones })}
+        >
+          <Ionicons
+            name={form.acepto_terminos_condiciones ? "checkbox" : "square-outline"}
+            size={28}
+            color="#9D489E"
+          />
+          <Text style={{ marginLeft: 10, color: '#5F7282', flex: 1, fontSize: 13 }}>
+            He leído y acepto los{' '}
+            <Text
+              style={{ textDecorationLine: 'underline', fontWeight: 'bold', color: '#9D489E' }}
+              onPress={fetchPoliticaPrivacidad}
+            >
+              Términos, Condiciones y Política de Privacidad
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[globalStyles.primaryButton, { marginTop: 10, marginHorizontal: 0 }]} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color="#FFF" /> : <Text style={globalStyles.primaryButtonText}>GUARDAR CAMBIOS</Text>}
         </TouchableOpacity>
 
       </ScrollView>
+      <Modal visible={showPrivacidad} transparent animationType="slide">
+        <View style={globalStyles.modalOverlay}>
+          <View style={[globalStyles.modalContent, { width: '95%', maxHeight: '85%', padding: 25 }]}>
+            <Text style={globalStyles.modalTitle}>AVISO DE PRIVACIDAD</Text>
+
+            <ScrollView style={{ marginTop: 15, marginBottom: 20 }} showsVerticalScrollIndicator={true}>
+              <Text style={{ fontSize: 13, color: '#5F7282', lineHeight: 20, textAlign: 'justify' }}>
+                {privacidadTexto || 'Cargando...'}
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[globalStyles.primaryButton, { width: '100%', marginHorizontal: 0 }]}
+              onPress={() => setShowPrivacidad(false)}
+            >
+              <Text style={globalStyles.primaryButtonText}>CERRAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
