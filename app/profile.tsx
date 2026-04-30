@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react'; // Cambiamos useEffect por useCallback
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router'; // Añadimos useFocusEffect
+import { useRouter, useFocusEffect } from 'expo-router';
 import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "../utils/apiClient";
 import { BottomNavbar } from '../components/BottomNavbar';
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
             <View style={{ flex: 1, borderRadius: 65, overflow: 'hidden', backgroundColor: '#EEE', justifyContent:'center', alignItems:'center' }}>
               {profile?.foto_perfil ? (
                 <Image
-                  key={profile.foto_perfil} // Tip: la key ayuda a que la imagen refresque si la URL es la misma pero el contenido cambió
+                  key={profile.foto_perfil}
                   source={{ uri: profile.foto_perfil }}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -66,17 +66,14 @@ export default function ProfileScreen() {
 
         <InfoBlock icon="person-circle-outline" label="NOMBRES" value={profile?.nombres} />
         <InfoBlock icon="person-circle-outline" label="APELLIDOS" value={profile?.apellidos} />
+        <InfoBlock icon="school-outline" label="UNIVERSIDAD" value={profile?.universidad} />
         <InfoBlock icon="calendar-outline" label="FECHA DE NACIMIENTO" value={profile?.fecha_nacimiento} />
         <InfoBlock icon="male-female-outline" label="GÉNERO" value={profile?.genero} />
         <InfoBlock icon="card-outline" label="IDENTIFICACIÓN" value={profile?.identificacion} />
         <InfoBlock icon="mail-outline" label="CORREO INSTITUCIONAL" value={profile?.correo_institucional} />
         <InfoBlock icon="mail-open-outline" label="CORREO PERSONAL" value={profile?.correo_personal} />
-        <InfoBlock icon="call-outline" label="TELÉFONO CELULAR" value={profile?.telefono_celular} />
-        <InfoBlock icon="location-outline" label="DIRECCIÓN" value={profile?.direccion} />
-
-        {/*<TouchableOpacity style={globalStyles.primaryButton} onPress={() => Alert.alert("Próximamente", "Flujo de cambio de contraseña")}>*/}
-        {/*  <Text style={globalStyles.primaryButtonText}>CAMBIAR CONTRASEÑA</Text>*/}
-        {/*</TouchableOpacity>*/}
+        <InfoBlock icon="phone-portrait-outline" label="TELÉFONO CELULAR" value={profile?.telefono_celular} />
+        <InfoBlock icon="call-outline" label="TELÉFONO CONVENCIONAL" value={profile?.telefono_convencional} />
 
         <TouchableOpacity style={[globalStyles.primaryButton, { backgroundColor: '#A5559F' }]} onPress={() => Alert.alert("Atención", "¿Seguro que deseas eliminar tu cuenta?")}>
           <Text style={globalStyles.primaryButtonText}>ELIMINAR CUENTA</Text>

@@ -20,7 +20,6 @@ export default function ExamWelcome() {
 
     setIsLoading(true);
     try {
-      // Endpoint para crear o recuperar el intento en progreso
       const response = await apiClient('/evaluaciones/examen/', {
         method: 'POST',
         body: JSON.stringify({ id_examen: parseInt(id_examen as string) })
@@ -37,14 +36,18 @@ export default function ExamWelcome() {
         router.replace({
           pathname: '/exam-session',
           params: {
-            id_intento: intentoData.id_intento,
-            duracion_minutos: intentoData.duracion_minutos,
-            total_preguntas: intentoData.total_preguntas,
-            cuestionario_str: JSON.stringify(intentoData.cuestionario || [])
+            id_intento: data.data.id_intento,
+            duracion_minutos: data.data.duracion_minutos,
+            total_preguntas: data.data.total_preguntas,
+            fecha_creacion: data.data.fecha_creacion,
+            cuestionario_str: JSON.stringify(data.data.cuestionario)
           }
         });
       } else {
-        Alert.alert('Error', data.message || 'No se pudo iniciar el examen.');
+        // --- AQUÍ ESTÁ LA CORRECCIÓN ---
+        // Buscamos primero en data.error, luego en data.message, y si no hay nada ponemos un default
+        const errorMsg = data.error || data.message || 'No se pudo iniciar el examen.';
+        Alert.alert('Error', errorMsg);
       }
     } catch (error) {
       Alert.alert('Error de Red', 'Revisa tu conexión e intenta de nuevo.');

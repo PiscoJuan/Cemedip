@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Platform,
-  Modal
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,10 +51,11 @@ export default function ProfileEditScreen() {
     nombres: '',
     apellidos: '',
     identificacion: '',
+    universidad: '',
     correo_institucional: '',
     correo_personal: '',
     telefono_celular: '',
-    direccion: '',
+    telefono_convencional: '', // <-- Agregado
     fecha_nacimiento: '',
     genero: '',
     foto_perfil: null,
@@ -72,6 +73,7 @@ export default function ProfileEditScreen() {
         setForm({
           ...json.data,
           foto_perfil_url: json.data.foto_perfil,
+          telefono_convencional: json.data.telefono_convencional || '', // Manejo por si viene null
           foto_perfil: null
         });
       }
@@ -91,6 +93,7 @@ export default function ProfileEditScreen() {
       Alert.alert("Error", "No se pudo cargar la política de privacidad.");
     }
   };
+
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -116,7 +119,8 @@ export default function ProfileEditScreen() {
   };
 
   const handleSave = async () => {
-    if (!form.correo_personal || !form.telefono_celular || !form.direccion) {
+    // Solo requerimos celular y correo personal
+    if (!form.correo_personal || !form.telefono_celular) {
       Alert.alert("Campos incompletos", "Por favor, completa los campos obligatorios.");
       return;
     }
@@ -131,7 +135,8 @@ export default function ProfileEditScreen() {
       const formData = new FormData();
       formData.append('correo_personal', form.correo_personal);
       formData.append('telefono_celular', form.telefono_celular);
-      formData.append('direccion', form.direccion);
+      // Enviamos el convencional (aunque esté vacío)
+      formData.append('telefono_convencional', form.telefono_convencional);
       formData.append('fecha_nacimiento', form.fecha_nacimiento);
       formData.append('genero', form.genero);
       formData.append('acepto_terminos_condiciones', form.acepto_terminos_condiciones.toString());
@@ -197,6 +202,7 @@ export default function ProfileEditScreen() {
         <InputField label="NOMBRES" value={form.nombres} editable={false} />
         <InputField label="APELLIDOS" value={form.apellidos} editable={false} />
         <InputField label="IDENTIFICACIÓN" value={form.identificacion} editable={false} />
+        <InputField label="UNIVERSIDAD" value={form.universidad} editable={false} />
         <InputField label="CORREO INSTITUCIONAL" value={form.correo_institucional} editable={false} />
 
         <InputField label="CORREO PERSONAL" value={form.correo_personal} onChange={(t) => setForm({...form, correo_personal: t})} />
@@ -211,7 +217,15 @@ export default function ProfileEditScreen() {
           keyboardType="numeric"
         />
 
-        <InputField label="DIRECCIÓN" value={form.direccion} onChange={(t) => setForm({...form, direccion: t})} />
+        <InputField
+          label="TELÉFONO CONVENCIONAL (OPCIONAL)"
+          value={form.telefono_convencional}
+          onChange={(t) => {
+            const cleaned = t.replace(/[^0-9]/g, '');
+            setForm({...form, telefono_convencional: cleaned.slice(0, 10)});
+          }}
+          keyboardType="numeric"
+        />
 
         <Text style={[globalStyles.label, { marginBottom: 10 }]}>FECHA DE NACIMIENTO</Text>
         <TouchableOpacity

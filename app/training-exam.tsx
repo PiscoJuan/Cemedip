@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,51 +14,81 @@ export default function TrainingExam() {
   const router = useRouter();
   const { trainingId, totalLimit, startPage } = useLocalSearchParams();
 
-  const [preguntas, setPreguntas] = useState([]);
+  const [preguntas, setPreguntas] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnswering, setIsAnswering] = useState(false);
   const [respuestas, setRespuestas] = useState({});
   const [segundosTranscurridos, setSegundosTranscurridos] = useState(0);
-  const [feedback, setFeedback] = useState(null);
-  const [currentPage, setCurrentPage] = useState(parseInt(startPage || '1'));
-  const [totalPreguntas, setTotalPreguntas] = useState(parseInt(totalLimit || '0'));
+  const [feedback, setFeedback] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(parseInt(startPage as string || '1'));
+  const [totalPreguntas, setTotalPreguntas] = useState(parseInt(totalLimit as string || '0'));
   const [hasNextPage, setHasNextPage] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [finalStorage, setFinalStorage] = useState({ t: 0, c: 0 });
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [reviewData, setReviewData] = useState([]);
+  const [reviewData, setReviewData] = useState<any[]>([]);
   const [loadingReview, setLoadingReview] = useState(false);
 
   const [showGifModal, setShowGifModal] = useState(false);
   const [isCorrectResponse, setIsCorrectResponse] = useState(true);
 
-  const fetchPreguntas = async (page) => {
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [isReporting, setIsReporting] = useState(false);
+
+  const [isCurrentQuestionReported, setIsCurrentQuestionReported] = useState(false);
+
+  const checkReportStatus = async (idIntentoPregunta: number) => {
+    try {
+      const response = await apiClient(`/evaluaciones/reportes/?id_intento_pregunta=${idIntentoPregunta}`);
+      const data = await response.json();
+      if (response.ok || data.status === 'success') {
+        setIsCurrentQuestionReported(data.data?.es_reportada || false);
+      }
+    } catch (error) {
+      console.error("Error comprobando el reporte:", error);
+    }
+  };
+
+  const fetchPreguntas = async (page: number) => {
     setIsLoading(true);
     setFeedback(null);
     setRespuestas({});
+    setIsCurrentQuestionReported(false);
     try {
       const response = await apiClient(`/evaluaciones/training/${trainingId}/pregunta/${page}/`);
       const data = await response.json();
+
       if ((response.ok || data.status === 'success') && data.data) {
         setPreguntas([data.data]);
         const totalApi = data.data.total_preguntas || data.total_preguntas;
         if (totalApi) setTotalPreguntas(totalApi);
         setHasNextPage(page < (totalApi || totalPreguntas));
+
+        const idActual = data.data.id_intento_pregunta || data.data.pregunta?.id_intento_pregunta;
+        if (idActual) {
+          checkReportStatus(idActual);
+        }
       }
-    } catch (error) { console.error('Error fetching:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      console.error('Error fetching:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  useEffect(() => { if (trainingId && !isReviewMode) fetchPreguntas(currentPage); }, [trainingId, currentPage, isReviewMode]);
+  useEffect(() => {
+    if (trainingId && !isReviewMode) fetchPreguntas(currentPage);
+  }, [trainingId, currentPage, isReviewMode]);
 
   useEffect(() => {
     const i = setInterval(() => setSegundosTranscurridos(s => s + 1), 1000);
     return () => clearInterval(i);
   }, []);
 
-  const handleSelectOption = async (preguntaId, opcionId) => {
+  const handleSelectOption = async (preguntaId: any, opcionId: number) => {
     if (feedback || isAnswering) return;
     setIsAnswering(true);
     setRespuestas(prev => ({ ...prev, [preguntaId]: opcionId }));
@@ -84,7 +114,7 @@ export default function TrainingExam() {
           await AsyncStorage.setItem('TOTALPREGSCORRECTAS', (parseInt(sCorr || '0') + 1).toString());
         }
 
-        const altCorr = resData.alternativas?.find(a => a.es_correcta === true);
+        const altCorr = resData.alternativas?.find((a: any) => a.es_correcta === true);
         setFeedback({
           esCorrecta: resData.es_correcta,
           correctaId: altCorr?.id_alternativa_intento,
@@ -96,8 +126,49 @@ export default function TrainingExam() {
           setHasNextPage(currentPage < resData.total_preguntas);
         }
       }
-    } catch (error) { Alert.alert('Error', 'Fallo de conexión.'); }
-    finally { setIsAnswering(false); }
+    } catch (error) {
+      Alert.alert('Error', 'Fallo de conexión.');
+    } finally {
+      setIsAnswering(false);
+    }
+  };
+
+  const handleSubmitReport = async (idIntentoPregunta: number) => {
+    if (!reportReason.trim()) {
+      Alert.alert("Atención", "Por favor ingresa una razón para el reporte.");
+      return;
+    }
+
+    if (!idIntentoPregunta) {
+      Alert.alert("Error", "No se pudo identificar la pregunta actual.");
+      return;
+    }
+
+    setIsReporting(true);
+    try {
+      const response = await apiClient('/evaluaciones/reportes/', {
+        method: 'POST',
+        body: JSON.stringify({
+          id_intento_pregunta: idIntentoPregunta,
+          razon: reportReason.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok || data.status === 'success') {
+        Alert.alert("Éxito", "El reporte ha sido enviado. ¡Gracias por tu feedback!");
+        setReportModalVisible(false);
+        setReportReason('');
+        setIsCurrentQuestionReported(true);
+      } else {
+        Alert.alert("Error", data.message || "No se pudo enviar el reporte.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Fallo de conexión al enviar el reporte.");
+    } finally {
+      setIsReporting(false);
+    }
   };
 
   const handleTerminar = async () => {
@@ -109,7 +180,7 @@ export default function TrainingExam() {
       });
       const t = await AsyncStorage.getItem('TOTALPREGS');
       const c = await AsyncStorage.getItem('TOTALPREGSCORRECTAS');
-      setFinalStorage({ t: t || 0, c: c || 0 });
+      setFinalStorage({ t: parseInt(t as string) || 0, c: parseInt(c as string) || 0 });
       setShowResults(true);
     } catch (error) { Alert.alert('Error', 'Error al finalizar.'); }
     finally { setIsSubmitting(false); }
@@ -130,7 +201,7 @@ export default function TrainingExam() {
     finally { setLoadingReview(false); }
   };
 
-  const formatearTiempo = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  const formatearTiempo = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
   if (isReviewMode) {
     return (
@@ -144,7 +215,7 @@ export default function TrainingExam() {
                 <Text style={{ fontWeight: 'bold', color: '#9D489E', marginBottom: 10 }}>PREGUNTA {index + 1}</Text>
                 <Text style={globalStyles.questionText}>{preg.enunciado}</Text>
 
-                {preg.alternativas.map((opcion) => {
+                {preg.alternativas.map((opcion: any) => {
                   let bgColor = '#F0F2F3';
                   let txtColor = '#5F7282';
                   let separatorColor = '#D1D5D8';
@@ -212,15 +283,41 @@ export default function TrainingExam() {
           <Text style={globalStyles.timerText}>TIEMPO: {formatearTiempo(segundosTranscurridos)}</Text>
 
           {preguntas.map((item, index) => {
-            const p = item.pregunta;
+            const p = item.pregunta || item;
+
             return (
               <View key={p.id_pregunta || index}>
-                <Text style={{ fontWeight: 'bold', color: '#9D489E', marginBottom: 10 }}>PREGUNTA {currentPage} DE {totalPreguntas}</Text>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold', color: '#9D489E' }}>
+                    PREGUNTA {currentPage} DE {totalPreguntas}
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => setReportModalVisible(true)}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                  >
+                    <Ionicons
+                      name={isCurrentQuestionReported ? "checkmark-circle" : "alert-circle-outline"}
+                      size={18}
+                      color={isCurrentQuestionReported ? "#A0AAB2" : "#FF3B30"}
+                    />
+                    <Text style={{
+                      color: isCurrentQuestionReported ? "#A0AAB2" : "#FF3B30",
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      marginLeft: 4
+                    }}>
+                      {isCurrentQuestionReported ? 'REPORTADO' : 'REPORTAR'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={globalStyles.questionText}>{p.enunciado}</Text>
 
-                {p.alternativas.map((opcion) => {
+                {p.alternativas?.map((opcion: any) => {
                   const oId = opcion.id_alternativa_intento;
-                  const isSelected = respuestas[p.id_pregunta] === oId;
+                  const isSelected = (respuestas as any)[p.id_pregunta] === oId;
                   let bgColor = '#F0F2F3';
                   let txtColor = '#5F7282';
                   let separatorColor = '#D1D5D8';
@@ -269,6 +366,7 @@ export default function TrainingExam() {
                     <Text style={{ color: '#5F7282' }}>{feedback.explicacion}</Text>
                   </View>
                 )}
+
               </View>
             );
           })}
@@ -332,6 +430,89 @@ export default function TrainingExam() {
 
       <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
       <BottomNavbar />
+
+      <Modal visible={reportModalVisible} transparent animationType="fade">
+        <View style={[globalStyles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={{ width: '90%', backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden' }}>
+
+            <View style={{ backgroundColor: '#6B3E75', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="alert-circle-outline" size={26} color="#FFF" />
+                  <View style={{ marginLeft: 10 }}>
+                      <Text style={{ color: '#E0C8E0', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 }}>PREGUNTA #{currentPage}</Text>
+                      <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>REPORTAR PREGUNTA</Text>
+                  </View>
+               </View>
+               <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                  <Ionicons name="close" size={26} color="#FFF" />
+               </TouchableOpacity>
+            </View>
+
+            <View style={{ padding: 20 }}>
+               <Text style={{ color: '#5F7282', marginBottom: 20, lineHeight: 20 }}>
+                 Describe el problema que encontraste con esta pregunta. Tu feedback nos ayuda a mejorar.
+               </Text>
+               <Text style={{ color: '#5F7282', fontSize: 12, fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 }}>
+                 RAZÓN DEL REPORTE
+               </Text>
+               <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5D8',
+                    borderRadius: 8,
+                    padding: 15,
+                    height: 120,
+                    textAlignVertical: 'top',
+                    color: '#5F7282',
+                    backgroundColor: '#FAFAFA'
+                  }}
+                  placeholder="Ej: Esta mal en algo, la respuesta correcta debería ser..."
+                  placeholderTextColor="#A0AAB2"
+                  multiline
+                  maxLength={500}
+                  value={reportReason}
+                  onChangeText={setReportReason}
+               />
+               <Text style={{ textAlign: 'right', color: '#A0AAB2', fontSize: 11, marginTop: 5 }}>
+                 {reportReason.length}/500
+               </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'center', padding: 20, borderTopWidth: 1, borderColor: '#EEE' }}>
+               <TouchableOpacity
+                 style={{ paddingVertical: 12, paddingHorizontal: 20, flex: 1, alignItems: 'center' }}
+                 onPress={() => setReportModalVisible(false)}
+                 disabled={isReporting}
+               >
+                  <Text style={{ color: '#A678A6', fontWeight: 'bold' }}>CANCELAR</Text>
+               </TouchableOpacity>
+
+               <TouchableOpacity
+                  style={{
+                    backgroundColor: '#9D489E',
+                    paddingVertical: 12,
+                    paddingHorizontal: 20,
+                    borderRadius: 8,
+                    flex: 1,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    const idActual = preguntas[0]?.id_intento_pregunta || preguntas[0]?.pregunta?.id_intento_pregunta;
+                    handleSubmitReport(idActual);
+                  }}
+                  disabled={isReporting}
+               >
+                  {isReporting ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>ENVIAR REPORTE</Text>
+                  )}
+               </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

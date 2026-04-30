@@ -74,10 +74,11 @@ export default function Login() {
       if (data.status === 'success' && data.statusCode === 200) {
         await logIn(data.data.token, data.data.usuario);
 
-        // Redirigir a completar perfil si los datos están incompletos
         if (data.data.usuario.datos_incompletos) {
           Alert.alert('Aviso', 'Por favor, completa tus datos y acepta los términos para continuar.');
-          router.replace('/profile-edit');
+          router.replace('/dashboard');
+          router.push('/profile');
+          router.push('/profile-edit');
         }
       } else {
         Alert.alert('Error', data.message || 'Credenciales incorrectas.');

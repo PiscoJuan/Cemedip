@@ -18,7 +18,7 @@ import { globalStyles } from '../constants/globalStyles';
 import { apiClient } from "@/utils/apiClient";
 import { BottomNavbar } from '../components/BottomNavbar';
 import { CustomDrawer } from '../components/CustomDrawer';
-import {MainHeader} from "@/components/MainHeader";
+import { MainHeader } from "@/components/MainHeader";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -30,10 +30,15 @@ export default function HistoryScreen() {
 
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const [selectedDetail, setSelectedDetail] = useState(null);
+  const [selectedDetail, setSelectedDetail] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
+
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportQuestionData, setReportQuestionData] = useState({ id: null, orden: null });
 
   useEffect(() => {
     fetchHistory();
@@ -54,34 +59,34 @@ export default function HistoryScreen() {
     }
   };
 
-  const handleSearch = (text) => {
+  const handleSearch = (text: string) => {
     setSearch(text);
-    const filtered = history.filter((item) =>
+    const filtered = history.filter((item: any) =>
       item.especialidad_nombre?.toLowerCase().includes(text.toLowerCase()) ||
       item.tema_nombre?.toLowerCase().includes(text.toLowerCase())
     );
     setFilteredHistory(filtered);
   };
 
-  const handleVerMas = async (id) => {
-  if (!id) return;
-  setLoadingDetail(true);
-  try {
-    const response = await apiClient(`/evaluaciones/training/historial/${id}/`);
-    const data = await response.json();
-    const detail = data.data || data;
+  const handleVerMas = async (id: any) => {
+    if (!id) return;
+    setLoadingDetail(true);
+    try {
+      const response = await apiClient(`/evaluaciones/training/historial/${id}/`);
+      const data = await response.json();
+      const detail = data.data || data;
 
-    setSelectedDetail(detail);
-    setModalVisible(true);
-  } catch (error) {
-    console.error("Error detalle:", error);
-    Alert.alert("Error", "No se pudo obtener el detalle.");
-  } finally {
-    setLoadingDetail(false);
-  }
-};
+      setSelectedDetail(detail);
+      setModalVisible(true);
+    } catch (error) {
+      console.error("Error detalle:", error);
+      Alert.alert("Error", "No se pudo obtener el detalle.");
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return '00/00/0000 00:00';
     try {
       const date = new Date(dateString);
@@ -97,7 +102,51 @@ export default function HistoryScreen() {
     }
   };
 
-  const renderItem = ({ item }) => (
+  const handleSubmitReport = async () => {
+    if (!reportReason.trim()) {
+      Alert.alert("Atención", "Por favor ingresa una razón para el reporte.");
+      return;
+    }
+
+    if (!reportQuestionData.id) {
+      Alert.alert("Error", "No se pudo identificar la pregunta actual.");
+      return;
+    }
+
+    setIsReporting(true);
+    try {
+      const response = await apiClient('/evaluaciones/reportes/', {
+        method: 'POST',
+        body: JSON.stringify({
+          id_intento_pregunta: reportQuestionData.id,
+          razon: reportReason.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok || data.status === 'success') {
+        Alert.alert("Éxito", "El reporte ha sido enviado. ¡Gracias por tu feedback!");
+        setReportModalVisible(false);
+        setReportReason('');
+
+        if (selectedDetail && selectedDetail.preguntas) {
+          const updatedPreguntas = selectedDetail.preguntas.map((p: any) =>
+            p.id_intento_pregunta === reportQuestionData.id ? { ...p, es_reportada: true } : p
+          );
+          setSelectedDetail({ ...selectedDetail, preguntas: updatedPreguntas });
+        }
+      } else {
+        Alert.alert("Error", data.message || "No se pudo enviar el reporte.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Fallo de conexión al enviar el reporte.");
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
     <View style={globalStyles.historyCard}>
       <View style={globalStyles.historyIconCircle}>
         <Image
@@ -140,16 +189,38 @@ export default function HistoryScreen() {
               {selectedDetail.intento?.porcentaje}% OBTENIDO
             </Text>
 
-            {selectedDetail.preguntas?.map((preg, index) => (
-              <View key={preg.id_pregunta || index} style={{ marginBottom: 35 }}>
-                <Text style={{ fontWeight: 'bold', color: '#9D489E', fontSize: 16, marginBottom: 10 }}>
-                  PREGUNTA {preg.orden || index + 1}
-                </Text>
+            {selectedDetail.preguntas?.map((preg: any, index: number) => (
+              <View key={preg.id_intento_pregunta || preg.id_pregunta || index} style={{ marginBottom: 35 }}>
+
+                {/* CABECERA DE LA PREGUNTA CON BOTÓN DE REPORTAR */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold', color: '#9D489E', fontSize: 16 }}>
+                    PREGUNTA {preg.orden || index + 1}
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    {preg.es_reportada && <Ionicons name="warning" size={18} color="#FF9500" />}
+                    <TouchableOpacity
+                      onPress={() => {
+                        setReportQuestionData({
+                          id: preg.id_intento_pregunta || preg.id_pregunta,
+                          orden: preg.orden || index + 1
+                        });
+                        setReportModalVisible(true);
+                      }}
+                      style={{ flexDirection: 'row', alignItems: 'center' }}
+                    >
+                      <Ionicons name="alert-circle-outline" size={18} color="#FF3B30" />
+                      <Text style={{ color: '#FF3B30', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>REPORTAR</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
                 <Text style={[globalStyles.questionText, { fontSize: 18, lineHeight: 24, marginBottom: 20 }]}>
                   {preg.enunciado}
                 </Text>
 
-                {preg.alternativas && preg.alternativas.map((opcion) => {
+                {preg.alternativas && preg.alternativas.map((opcion: any) => {
                   let bgColor = '#F0F2F3';
                   let txtColor = '#5F7282';
                   let separatorColor = '#D1D5D8';
@@ -206,6 +277,79 @@ export default function HistoryScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* MODAL DE REPORTE (DENTRO DE IS_REVIEW_MODE) */}
+        <Modal visible={reportModalVisible} transparent animationType="fade">
+          <View style={[globalStyles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+            <View style={{ width: '90%', backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden' }}>
+
+              <View style={{ backgroundColor: '#6B3E75', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="alert-circle-outline" size={26} color="#FFF" />
+                    <View style={{ marginLeft: 10 }}>
+                        <Text style={{ color: '#E0C8E0', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 }}>
+                          PREGUNTA #{reportQuestionData.orden}
+                        </Text>
+                        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>REPORTAR PREGUNTA</Text>
+                    </View>
+                 </View>
+                 <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                    <Ionicons name="close" size={26} color="#FFF" />
+                 </TouchableOpacity>
+              </View>
+
+              <View style={{ padding: 20 }}>
+                 <Text style={{ color: '#5F7282', marginBottom: 20, lineHeight: 20 }}>
+                   Describe el problema que encontraste con esta pregunta. Tu feedback nos ayuda a mejorar.
+                 </Text>
+                 <Text style={{ color: '#5F7282', fontSize: 12, fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 }}>
+                   RAZÓN DEL REPORTE
+                 </Text>
+                 <TextInput
+                    style={{
+                      borderWidth: 1, borderColor: '#D1D5D8', borderRadius: 8, padding: 15,
+                      height: 120, textAlignVertical: 'top', color: '#5F7282', backgroundColor: '#FAFAFA'
+                    }}
+                    placeholder="Ej: Esta mal en algo, la respuesta correcta debería ser..."
+                    placeholderTextColor="#A0AAB2"
+                    multiline
+                    maxLength={500}
+                    value={reportReason}
+                    onChangeText={setReportReason}
+                 />
+                 <Text style={{ textAlign: 'right', color: '#A0AAB2', fontSize: 11, marginTop: 5 }}>
+                   {reportReason.length}/500
+                 </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', padding: 20, borderTopWidth: 1, borderColor: '#EEE' }}>
+                 <TouchableOpacity
+                   style={{ paddingVertical: 12, paddingHorizontal: 20, flex: 1, alignItems: 'center' }}
+                   onPress={() => setReportModalVisible(false)}
+                   disabled={isReporting}
+                 >
+                    <Text style={{ color: '#9D489E', fontWeight: 'bold' }}>CANCELAR</Text>
+                 </TouchableOpacity>
+
+                 <TouchableOpacity
+                    style={{
+                      backgroundColor: '#9D489E', paddingVertical: 12, paddingHorizontal: 20,
+                      borderRadius: 8, flex: 1, alignItems: 'center'
+                    }}
+                    onPress={handleSubmitReport}
+                    disabled={isReporting}
+                 >
+                    {isReporting ? (
+                      <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                      <Text style={{ color: '#FFF', fontWeight: 'bold' }}>ENVIAR REPORTE</Text>
+                    )}
+                 </TouchableOpacity>
+              </View>
+
+            </View>
+          </View>
+        </Modal>
 
         <CustomDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
         <BottomNavbar />
@@ -293,7 +437,7 @@ export default function HistoryScreen() {
             </Text>
 
             <ScrollView style={{ width: '100%', flexShrink: 1 }} showsVerticalScrollIndicator={false}>
-              {selectedDetail?.preguntas?.map((preg, index) => (
+              {selectedDetail?.preguntas?.map((preg: any, index: number) => (
                 <View key={index} style={globalStyles.questionReviewRow}>
                   <View style={[globalStyles.orderBadge, { backgroundColor: preg.es_correcta ? '#4CAF50' : '#F44336' }]}>
                     <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{preg.orden}</Text>
